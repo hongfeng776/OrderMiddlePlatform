@@ -47,4 +47,34 @@ public class ProductInventoryController {
         boolean result = productInventoryService.unlockStock(productId, count);
         return Result.success(result);
     }
+
+    @PostMapping("/pre-deduct")
+    public Result<Boolean> preDeductStock(@RequestBody Map<String, Object> params) {
+        Long productId = Long.valueOf(params.get("productId").toString());
+        Integer count = Integer.valueOf(params.get("count").toString());
+        String orderNo = (String) params.get("orderNo");
+        
+        boolean result = productInventoryService.preDeductStock(productId, count, orderNo);
+        return Result.success(result);
+    }
+
+    @PostMapping("/confirm-deduct")
+    public Result<Boolean> confirmDeductStock(@RequestBody Map<String, Object> params) {
+        Long productId = Long.valueOf(params.get("productId").toString());
+        Integer count = Integer.valueOf(params.get("count").toString());
+        String orderNo = (String) params.get("orderNo");
+        
+        boolean result = productInventoryService.confirmDeductStock(productId, count, orderNo);
+        return Result.success(result);
+    }
+
+    @PostMapping("/rollback")
+    public Result<Boolean> rollbackStock(@RequestBody Map<String, Object> params) {
+        Long productId = Long.valueOf(params.get("productId").toString());
+        Integer count = Integer.valueOf(params.get("count").toString());
+        String orderNo = (String) params.get("orderNo");
+        
+        boolean result = productInventoryService.rollbackStock(productId, count, orderNo);
+        return Result.success(result);
+    }
 }

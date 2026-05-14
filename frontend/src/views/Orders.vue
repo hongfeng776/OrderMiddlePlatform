@@ -171,13 +171,7 @@ export default {
     
     const payOrder = async (order) => {
       try {
-        const payRes = await paymentApi.create({
-          orderNo: order.orderNo,
-          userId: userInfo.value.userId,
-          amount: order.payAmount,
-          payType: 1
-        })
-        await paymentApi.process(payRes.data)
+        await orderApi.paySuccess(order.orderNo)
         ElMessage.success('支付成功')
         loadOrders()
       } catch (error) {

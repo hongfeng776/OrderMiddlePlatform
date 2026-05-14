@@ -50,6 +50,12 @@ export const orderApi = {
       url: `/order/${orderNo}`,
       method: 'get'
     })
+  },
+  paySuccess(orderNo) {
+    return request({
+      url: `/order/pay-success/${orderNo}`,
+      method: 'post'
+    })
   }
 }
 

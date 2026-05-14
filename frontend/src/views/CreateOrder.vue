@@ -35,42 +35,113 @@
           <h2 class="page-title">创建订单</h2>
           
           <el-card>
-            <h3 style="margin-bottom: 15px">选择商品</h3>
-            <el-table :data="products" stripe border @selection-change="handleSelectionChange">
+            <template #header>
+              <div class="card-header">
+                <span>选择商品</span>
+                <el-input
+                  v-model="searchKeyword"
+                  placeholder="搜索商品名称"
+                  style="width: 250px"
+                  clearable
+                  prefix-icon="Search"
+                />
+              </div>
+            </template>
+            
+            <el-table
+              :data="filteredProducts"
+              stripe
+              border
+              @selection-change="handleSelectionChange"
+              style="margin-bottom: 20px"
+            >
               <el-table-column type="selection" width="55"></el-table-column>
-              <el-table-column prop="productName" label="商品名称"></el-table-column>
+              <el-table-column prop="productName" label="商品名称" min-width="200"></el-table-column>
               <el-table-column prop="price" label="价格" width="120">
-                <template #default="scope">¥{{ scope.row.price }}</template>
+                <template #default="scope">
+                  <span style="color: #f56c6c; font-weight: bold">¥{{ scope.row.price }}</span>
+                </template>
               </el-table-column>
-              <el-table-column prop="stockNum" label="库存" width="100"></el-table-column>
+              <el-table-column prop="stockNum" label="库存" width="100">
+                <template #default="scope">
+                  <el-tag v-if="scope.row.stockNum < 10" type="danger">仅剩{{ scope.row.stockNum }}</el-tag>
+                  <span v-else>{{ scope.row.stockNum }}</span>
+                </template>
+              </el-table-column>
               <el-table-column label="购买数量" width="150">
                 <template #default="scope">
-                  <el-input-number v-model="scope.row.buyCount" :min="1" :max="scope.row.stockNum" size="small"></el-input-number>
+                  <el-input-number
+                    v-model="scope.row.buyCount"
+                    :min="1"
+                    :max="scope.row.stockNum"
+                    size="small"
+                    @change="handleQuantityChange(scope.row)"
+                  />
+                </template>
+              </el-table-column>
+              <el-table-column label="小计" width="120">
+                <template #default="scope">
+                  <span style="color: #f56c6c; font-weight: bold">
+                    ¥{{ (scope.row.price * scope.row.buyCount).toFixed(2) }}
+                  </span>
                 </template>
               </el-table-column>
             </el-table>
           </el-card>
           
           <el-card style="margin-top: 20px">
-            <h3 style="margin-bottom: 15px">收货信息</h3>
+            <template #header>
+              <div class="card-header">
+                <span>收货信息</span>
+              </div>
+            </template>
+            
             <el-form :model="receiverForm" label-width="100px">
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="收货人">
-                    <el-input v-model="receiverForm.name" placeholder="请输入收货人姓名"></el-input>
+                  <el-form-item label="收货人" prop="name">
+                    <el-select
+                      v-model="receiverForm.name"
+                      placeholder="选择或输入收货人"
+                      filterable
+                      allow-create
+                      default-first-option
+                      style="width: 100%"
+                      @change="handleAddressSelect"
+                    >
+                      <el-option
+                        v-for="(addr, index) in savedAddresses"
+                        :key="index"
+                        :label="addr.name"
+                        :value="addr.name"
+                      >
+                        <div>{{ addr.name }} - {{ addr.phone }}</div>
+                        <div style="font-size: 12px; color: #999">{{ addr.address }}</div>
+                      </el-option>
+                    </el-select>
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="联系电话">
+                  <el-form-item label="联系电话" prop="phone">
                     <el-input v-model="receiverForm.phone" placeholder="请输入联系电话"></el-input>
                   </el-form-item>
                 </el-col>
               </el-row>
-              <el-form-item label="收货地址">
-                <el-input v-model="receiverForm.address" type="textarea" :rows="2" placeholder="请输入收货地址"></el-input>
+              <el-form-item label="收货地址" prop="address">
+                <el-input
+                  v-model="receiverForm.address"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="请输入收货地址"
+                ></el-input>
               </el-form-item>
               <el-form-item label="订单备注">
-                <el-input v-model="receiverForm.remark" type="textarea" :rows="2" placeholder="请输入订单备注（可选）"></el-input>
+                <el-input
+                  v-model="receiverForm.remark"
+                  type="textarea"
+                  :rows="2"
+                  placeholder="请输入订单备注（可选）"
+                ></el-input>
               </el-form-item>
             </el-form>
           </el-card>
@@ -80,11 +151,51 @@
               <span>已选 {{ selectedItems.length }} 件商品</span>
               <span class="total-price">合计：¥{{ totalAmount }}</span>
             </div>
-            <el-button type="primary" size="large" :loading="submitting" @click="submitOrder">提交订单</el-button>
+            <el-button type="primary" size="large" :loading="submitting" @click="showConfirmDialog">
+              提交订单
+            </el-button>
           </div>
         </el-main>
       </el-container>
     </el-container>
+    
+    <el-dialog
+      v-model="confirmDialogVisible"
+      title="确认订单"
+      width="600px"
+      :close-on-click-modal="false"
+    >
+      <div v-if="confirmOrderData">
+        <el-descriptions :column="2" border style="margin-bottom: 20px">
+          <el-descriptions-item label="收货人">{{ confirmOrderData.receiverName }}</el-descriptions-item>
+          <el-descriptions-item label="联系电话">{{ confirmOrderData.receiverPhone }}</el-descriptions-item>
+          <el-descriptions-item :span="2" label="收货地址">{{ confirmOrderData.receiverAddress }}</el-descriptions-item>
+          <el-descriptions-item label="订单金额">
+            <span style="color: #f56c6c; font-weight: bold; font-size: 18px">¥{{ confirmOrderData.totalAmount }}</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="商品数量">{{ confirmOrderData.itemCount }} 件</el-descriptions-item>
+        </el-descriptions>
+        
+        <h4 style="margin-bottom: 10px">商品清单</h4>
+        <el-table :data="confirmOrderData.items" border size="small">
+          <el-table-column prop="productName" label="商品名称"></el-table-column>
+          <el-table-column prop="price" label="单价" width="100">
+            <template #default="scope">¥{{ scope.row.price }}</template>
+          </el-table-column>
+          <el-table-column prop="buyCount" label="数量" width="80"></el-table-column>
+          <el-table-column label="小计" width="100">
+            <template #default="scope">
+              ¥{{ (scope.row.price * scope.row.buyCount).toFixed(2) }}
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+      
+      <template #footer>
+        <el-button @click="confirmDialogVisible = false">取消</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitOrder">确认下单</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -108,7 +219,15 @@ export default {
       loading: false,
       submitting: false,
       products: [],
+      searchKeyword: '',
       selectedItems: [],
+      confirmDialogVisible: false,
+      confirmOrderData: null,
+      savedAddresses: [
+        { name: '张三', phone: '13800138001', address: '北京市朝阳区某某街道123号' },
+        { name: '李四', phone: '13800138002', address: '上海市浦东新区某某路456号' },
+        { name: '王五', phone: '13800138003', address: '广州市天河区某某大道789号' }
+      ],
       receiverForm: {
         name: '',
         phone: '',
@@ -120,9 +239,18 @@ export default {
     const userInfo = computed(() => store.state.user)
     const activeMenu = computed(() => route.path)
     
+    const filteredProducts = computed(() => {
+      if (!state.searchKeyword) {
+        return state.products
+      }
+      return state.products.filter(p => 
+        p.productName.toLowerCase().includes(state.searchKeyword.toLowerCase())
+      )
+    })
+    
     const totalAmount = computed(() => {
       return state.selectedItems.reduce((total, item) => {
-        return total + item.price * (item.buyCount || 1)
+        return total + item.price * item.buyCount
       }, 0).toFixed(2)
     })
     
@@ -145,7 +273,18 @@ export default {
       state.selectedItems = selection
     }
     
-    const submitOrder = async () => {
+    const handleQuantityChange = (row) => {
+    }
+    
+    const handleAddressSelect = (name) => {
+      const address = state.savedAddresses.find(a => a.name === name)
+      if (address) {
+        state.receiverForm.phone = address.phone
+        state.receiverForm.address = address.address
+      }
+    }
+    
+    const showConfirmDialog = () => {
       if (state.selectedItems.length === 0) {
         ElMessage.warning('请选择商品')
         return
@@ -156,6 +295,19 @@ export default {
         return
       }
       
+      state.confirmOrderData = {
+        receiverName: state.receiverForm.name,
+        receiverPhone: state.receiverForm.phone,
+        receiverAddress: state.receiverForm.address,
+        totalAmount: totalAmount.value,
+        itemCount: state.selectedItems.length,
+        items: [...state.selectedItems]
+      }
+      
+      state.confirmDialogVisible = true
+    }
+    
+    const submitOrder = async () => {
       state.submitting = true
       try {
         const items = state.selectedItems.map(item => ({
@@ -175,6 +327,7 @@ export default {
           items: items
         })
         
+        state.confirmDialogVisible = false
         ElMessage.success('订单创建成功')
         router.push('/orders')
       } catch (error) {
@@ -198,7 +351,11 @@ export default {
       activeMenu,
       logout,
       handleSelectionChange,
+      handleQuantityChange,
+      handleAddressSelect,
+      showConfirmDialog,
       submitOrder,
+      filteredProducts,
       totalAmount,
       ...toRefs(state)
     }
@@ -251,6 +408,13 @@ export default {
 .page-title {
   margin-bottom: 20px;
   color: #333;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
 }
 
 .order-footer {

@@ -57,9 +57,29 @@ public class GatewayController {
         return inventoryFeignClient.unlockStock(params);
     }
 
+    @PostMapping("/inventory/pre-deduct")
+    public Result<Boolean> preDeductStock(@RequestBody Map<String, Object> params) {
+        return inventoryFeignClient.preDeductStock(params);
+    }
+
+    @PostMapping("/inventory/confirm-deduct")
+    public Result<Boolean> confirmDeductStock(@RequestBody Map<String, Object> params) {
+        return inventoryFeignClient.confirmDeductStock(params);
+    }
+
+    @PostMapping("/inventory/rollback")
+    public Result<Boolean> rollbackStock(@RequestBody Map<String, Object> params) {
+        return inventoryFeignClient.rollbackStock(params);
+    }
+
     @PostMapping("/order/create")
     public Result createOrder(@RequestBody Map<String, Object> params) {
         return orderFeignClient.createOrder(params);
+    }
+
+    @PostMapping("/order/pay-success/{orderNo}")
+    public Result<Boolean> paySuccess(@PathVariable String orderNo) {
+        return orderFeignClient.paySuccess(orderNo);
     }
 
     @GetMapping("/order/list/{userId}")

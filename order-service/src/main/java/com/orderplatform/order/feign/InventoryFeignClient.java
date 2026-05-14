@@ -15,4 +15,13 @@ public interface InventoryFeignClient {
 
     @PostMapping("/inventory/unlock")
     Result<Boolean> unlockStock(@RequestBody Map<String, Object> params);
+
+    @PostMapping("/inventory/pre-deduct")
+    Result<Boolean> preDeductStock(@RequestBody Map<String, Object> params);
+
+    @PostMapping("/inventory/confirm-deduct")
+    Result<Boolean> confirmDeductStock(@RequestBody Map<String, Object> params);
+
+    @PostMapping("/inventory/rollback")
+    Result<Boolean> rollbackStock(@RequestBody Map<String, Object> params);
 }

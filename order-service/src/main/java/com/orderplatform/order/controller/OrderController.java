@@ -44,4 +44,10 @@ public class OrderController {
         
         return Result.success(data);
     }
+
+    @PostMapping("/pay-success/{orderNo}")
+    public Result<Boolean> paySuccess(@PathVariable String orderNo) {
+        boolean result = orderService.paySuccess(orderNo);
+        return Result.success(result);
+    }
 }

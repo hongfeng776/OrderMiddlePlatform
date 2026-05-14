@@ -13,6 +13,9 @@ public interface OrderFeignClient {
     @PostMapping("/order/create")
     Result createOrder(@RequestBody Map<String, Object> params);
 
+    @PostMapping("/order/pay-success/{orderNo}")
+    Result<Boolean> paySuccess(@PathVariable("orderNo") String orderNo);
+
     @GetMapping("/order/list/{userId}")
     Result<List> listByUserId(@PathVariable("userId") Long userId);
 
