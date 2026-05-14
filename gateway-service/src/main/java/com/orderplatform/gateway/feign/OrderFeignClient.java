@@ -16,9 +16,33 @@ public interface OrderFeignClient {
     @PostMapping("/order/pay-success/{orderNo}")
     Result<Boolean> paySuccess(@PathVariable("orderNo") String orderNo);
 
+    @PostMapping("/order/ship/{orderNo}")
+    Result<Boolean> ship(@PathVariable("orderNo") String orderNo);
+
+    @PostMapping("/order/complete/{orderNo}")
+    Result<Boolean> complete(@PathVariable("orderNo") String orderNo);
+
+    @PostMapping("/order/cancel/{orderNo}")
+    Result<Boolean> cancel(@PathVariable("orderNo") String orderNo);
+
     @GetMapping("/order/list/{userId}")
     Result<List> listByUserId(@PathVariable("userId") Long userId);
 
     @GetMapping("/order/{orderNo}")
     Result getOrderDetail(@PathVariable("orderNo") String orderNo);
+
+    @GetMapping("/order/status-history/{orderNo}")
+    Result getStatusHistory(@PathVariable("orderNo") String orderNo);
+
+    @GetMapping("/order/notifications/{userId}")
+    Result getNotifications(@PathVariable("userId") Long userId);
+
+    @GetMapping("/order/notifications/unread-count/{userId}")
+    Result getUnreadCount(@PathVariable("userId") Long userId);
+
+    @PostMapping("/order/notifications/mark-read/{id}")
+    Result markAsRead(@PathVariable("id") Long id);
+
+    @PostMapping("/order/notifications/mark-all-read/{userId}")
+    Result markAllAsRead(@PathVariable("userId") Long userId);
 }

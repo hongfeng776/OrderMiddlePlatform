@@ -93,6 +93,33 @@ CREATE TABLE IF NOT EXISTS `payment_record` (
     KEY `idx_user_id` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='支付流水表';
 
+CREATE TABLE IF NOT EXISTS `order_status_log` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '状态日志ID',
+    `order_no` VARCHAR(64) NOT NULL COMMENT '订单编号',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `previous_status` TINYINT COMMENT '之前状态',
+    `current_status` TINYINT NOT NULL COMMENT '当前状态',
+    `remark` VARCHAR(500) COMMENT '备注',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_order_no` (`order_no`),
+    KEY `idx_user_id` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单状态日志表';
+
+CREATE TABLE IF NOT EXISTS `notification` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '通知ID',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `order_no` VARCHAR(64) COMMENT '订单编号',
+    `title` VARCHAR(200) NOT NULL COMMENT '标题',
+    `content` TEXT COMMENT '内容',
+    `type` TINYINT NOT NULL DEFAULT 1 COMMENT '类型：1-订单通知',
+    `read_status` TINYINT NOT NULL DEFAULT 0 COMMENT '阅读状态：0-未读，1-已读',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    PRIMARY KEY (`id`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_order_no` (`order_no`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';
+
 INSERT INTO `user` (`username`, `password`, `nickname`, `phone`) VALUES
 ('admin', '123456', '管理员', '13800138000'),
 ('test', '123456', '测试用户', '13800138001');

@@ -56,6 +56,54 @@ export const orderApi = {
       url: `/order/pay-success/${orderNo}`,
       method: 'post'
     })
+  },
+  ship(orderNo) {
+    return request({
+      url: `/order/ship/${orderNo}`,
+      method: 'post'
+    })
+  },
+  complete(orderNo) {
+    return request({
+      url: `/order/complete/${orderNo}`,
+      method: 'post'
+    })
+  },
+  cancel(orderNo) {
+    return request({
+      url: `/order/cancel/${orderNo}`,
+      method: 'post'
+    })
+  },
+  getStatusHistory(orderNo) {
+    return request({
+      url: `/order/status-history/${orderNo}`,
+      method: 'get'
+    })
+  },
+  getNotifications(userId) {
+    return request({
+      url: `/order/notifications/${userId}`,
+      method: 'get'
+    })
+  },
+  getUnreadCount(userId) {
+    return request({
+      url: `/order/notifications/unread-count/${userId}`,
+      method: 'get'
+    })
+  },
+  markAsRead(id) {
+    return request({
+      url: `/order/notifications/mark-read/${id}`,
+      method: 'post'
+    })
+  },
+  markAllAsRead(userId) {
+    return request({
+      url: `/order/notifications/mark-all-read/${userId}`,
+      method: 'post'
+    })
   }
 }
 

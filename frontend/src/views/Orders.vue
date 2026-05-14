@@ -20,6 +20,10 @@
               <el-icon><List /></el-icon>
               <span>订单列表</span>
             </el-menu-item>
+            <el-menu-item index="/notifications">
+              <el-icon><Bell /></el-icon>
+              <span>通知中心</span>
+            </el-menu-item>
             <el-menu-item index="/create-order">
               <el-icon><Plus /></el-icon>
               <span>创建订单</span>
@@ -103,11 +107,11 @@ import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { orderApi } from '@/api'
 import { ElMessage } from 'element-plus'
-import { HomeFilled, List, Plus, User } from '@element-plus/icons-vue'
+import { HomeFilled, List, Bell, Plus, User } from '@element-plus/icons-vue'
 
 export default {
   name: 'Orders',
-  components: { HomeFilled, List, Plus, User },
+  components: { HomeFilled, List, Bell, Plus, User },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -159,14 +163,8 @@ export default {
       return texts[status] || '未知'
     }
     
-    const viewDetail = async (order) => {
-      try {
-        const res = await orderApi.getDetail(order.orderNo)
-        state.orderDetail = res.data
-        state.detailVisible = true
-      } catch (error) {
-        console.error('加载订单详情失败:', error)
-      }
+    const viewDetail = (order) => {
+      router.push(`/order/${order.orderNo}`)
     }
     
     const payOrder = async (order) => {

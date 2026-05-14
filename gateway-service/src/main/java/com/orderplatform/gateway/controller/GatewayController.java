@@ -87,14 +87,44 @@ public class GatewayController {
         return orderFeignClient.paySuccess(orderNo);
     }
 
-    @GetMapping("/order/list/{userId}")
-    public Result<List> listOrders(@PathVariable Long userId) {
-        return orderFeignClient.listByUserId(userId);
+    @PostMapping("/order/ship/{orderNo}")
+    public Result<Boolean> ship(@PathVariable String orderNo) {
+        return orderFeignClient.ship(orderNo);
     }
 
-    @GetMapping("/order/{orderNo}")
-    public Result getOrderDetail(@PathVariable String orderNo) {
-        return orderFeignClient.getOrderDetail(orderNo);
+    @PostMapping("/order/complete/{orderNo}")
+    public Result<Boolean> complete(@PathVariable String orderNo) {
+        return orderFeignClient.complete(orderNo);
+    }
+
+    @PostMapping("/order/cancel/{orderNo}")
+    public Result<Boolean> cancel(@PathVariable String orderNo) {
+        return orderFeignClient.cancel(orderNo);
+    }
+
+    @GetMapping("/order/status-history/{orderNo}")
+    public Result getStatusHistory(@PathVariable String orderNo) {
+        return orderFeignClient.getStatusHistory(orderNo);
+    }
+
+    @GetMapping("/order/notifications/{userId}")
+    public Result getNotifications(@PathVariable Long userId) {
+        return orderFeignClient.getNotifications(userId);
+    }
+
+    @GetMapping("/order/notifications/unread-count/{userId}")
+    public Result getUnreadCount(@PathVariable Long userId) {
+        return orderFeignClient.getUnreadCount(userId);
+    }
+
+    @PostMapping("/order/notifications/mark-read/{id}")
+    public Result markAsRead(@PathVariable Long id) {
+        return orderFeignClient.markAsRead(id);
+    }
+
+    @PostMapping("/order/notifications/mark-all-read/{userId}")
+    public Result markAllAsRead(@PathVariable Long userId) {
+        return orderFeignClient.markAllAsRead(userId);
     }
 
     @PostMapping("/payment/create")

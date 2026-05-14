@@ -2,8 +2,8 @@ package com.orderplatform.order.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.orderplatform.common.enums.OrderStatusEnum;
 import com.orderplatform.common.exception.BusinessException;
-import com.orderplatform.common.result.Result;
 import com.orderplatform.common.dto.CreateOrderDTO;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderItem;
@@ -34,7 +34,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
     private InventoryFeignClient inventoryFeignClient;
 
     @Autowired
-    private OrderAsyncService orderAsyncService;
+    private OrderMessageProducer orderMessageProducer;
 
     @Transactional(rollbackFor = Exception.class)
     public Order createOrder(CreateOrderDTO dto) {
@@ -54,8 +54,8 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
                 preDeductParams.put("count", itemDTO.getBuyCount());
                 preDeductParams.put("orderNo", orderNo);
                 
-                Result<Boolean> preDeductResult = inventoryFeignClient.preDeductStock(preDeductParams);
-                if (!preDeductResult.getCode().equals(200) || !Boolean.TRUE.equals(preDeductResult.getData())) {
+                Boolean preDeductResult = inventoryFeignClient.preDeductStock(preDeductParams).getData();
+                if (!Boolean.TRUE.equals(preDeductResult)) {
                     throw new BusinessException("商品 " + itemDTO.getProductName() + " 库存不足");
                 }
                 lockedStocks.add(preDeductParams);
@@ -79,7 +79,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             order.setPayAmount(totalAmount);
             order.setFreightAmount(BigDecimal.ZERO);
             order.setDiscountAmount(BigDecimal.ZERO);
-            order.setOrderStatus(0);
+            order.setOrderStatus(OrderStatusEnum.PENDING_PAYMENT.getCode());
             order.setPayStatus(0);
             order.setReceiverName(dto.getReceiverName());
             order.setReceiverPhone(dto.getReceiverPhone());
@@ -94,8 +94,8 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
                 orderItemMapper.insert(orderItem);
             }
             
-            orderAsyncService.recordOrderLog(orderNo, dto.getUserId(), totalAmount, "CREATED");
-            orderAsyncService.sendOrderCreatedNotification(orderNo, dto.getUserId());
+            orderMessageProducer.sendOrderStatusChange(orderNo, dto.getUserId(), null, OrderStatusEnum.PENDING_PAYMENT.getCode());
+            orderMessageProducer.sendNotification(dto.getUserId(), orderNo, "订单创建成功", "您的订单已创建成功，请及时支付", 1);
             
             log.info("订单创建成功: orderNo={}", orderNo);
             return order;
@@ -118,7 +118,8 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         if (order == null) {
             throw new BusinessException("订单不存在");
         }
-        if (order.getOrderStatus() != 0) {
+        Integer previousStatus = order.getOrderStatus();
+        if (!OrderStatusEnum.PENDING_PAYMENT.getCode().equals(previousStatus)) {
             throw new BusinessException("订单状态异常");
         }
         
@@ -130,21 +131,103 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             confirmParams.put("count", item.getBuyCount());
             confirmParams.put("orderNo", orderNo);
             
-            Result<Boolean> confirmResult = inventoryFeignClient.confirmDeductStock(confirmParams);
-            if (!confirmResult.getCode().equals(200) || !Boolean.TRUE.equals(confirmResult.getData())) {
+            Boolean confirmResult = inventoryFeignClient.confirmDeductStock(confirmParams).getData();
+            if (!Boolean.TRUE.equals(confirmResult)) {
                 log.warn("确认扣减库存失败，继续处理: orderNo={}, productId={}", orderNo, item.getProductId());
             }
         }
         
-        order.setOrderStatus(1);
+        order.setOrderStatus(OrderStatusEnum.PAID.getCode());
         order.setPayStatus(1);
         order.setPayTime(LocalDateTime.now());
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
         
-        orderAsyncService.sendPaymentSuccessNotification(orderNo, order.getUserId());
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.PAID.getCode());
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "支付成功", "您的订单已支付成功，等待商家发货", 1);
         
         log.info("支付成功: orderNo={}", orderNo);
+        return true;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean ship(String orderNo) {
+        Order order = getOrderByNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        Integer previousStatus = order.getOrderStatus();
+        if (!OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
+            throw new BusinessException("订单状态异常，当前状态不可发货");
+        }
+        
+        order.setOrderStatus(OrderStatusEnum.SHIPPED.getCode());
+        order.setShipTime(LocalDateTime.now());
+        order.setUpdateTime(LocalDateTime.now());
+        updateById(order);
+        
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.SHIPPED.getCode());
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已发货", "您的订单已发货，请注意查收", 1);
+        
+        log.info("订单发货成功: orderNo={}", orderNo);
+        return true;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean complete(String orderNo) {
+        Order order = getOrderByNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        Integer previousStatus = order.getOrderStatus();
+        if (!OrderStatusEnum.SHIPPED.getCode().equals(previousStatus)) {
+            throw new BusinessException("订单状态异常，当前状态不可完成");
+        }
+        
+        order.setOrderStatus(OrderStatusEnum.COMPLETED.getCode());
+        order.setFinishTime(LocalDateTime.now());
+        order.setUpdateTime(LocalDateTime.now());
+        updateById(order);
+        
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.COMPLETED.getCode());
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已完成", "您的订单已完成，感谢您的购买", 1);
+        
+        log.info("订单完成: orderNo={}", orderNo);
+        return true;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancel(String orderNo) {
+        Order order = getOrderByNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        Integer previousStatus = order.getOrderStatus();
+        if (!OrderStatusEnum.PENDING_PAYMENT.getCode().equals(previousStatus) && 
+            !OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
+            throw new BusinessException("订单状态异常，当前状态不可取消");
+        }
+        
+        if (OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
+            List<OrderItem> orderItems = getOrderItems(order.getId());
+            for (OrderItem item : orderItems) {
+                Map<String, Object> rollbackParams = new HashMap<>();
+                rollbackParams.put("productId", item.getProductId());
+                rollbackParams.put("count", item.getBuyCount());
+                rollbackParams.put("orderNo", orderNo);
+                inventoryFeignClient.rollbackStock(rollbackParams);
+            }
+        }
+        
+        order.setOrderStatus(OrderStatusEnum.CANCELLED.getCode());
+        order.setCancelTime(LocalDateTime.now());
+        order.setUpdateTime(LocalDateTime.now());
+        updateById(order);
+        
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.CANCELLED.getCode());
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已取消", "您的订单已取消", 1);
+        
+        log.info("订单取消成功: orderNo={}", orderNo);
         return true;
     }
 
