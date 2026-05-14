@@ -91,6 +91,12 @@ const routes = [
     name: 'OrderManagement',
     component: () => import('@/views/OrderManagement.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/schedule-job',
+    name: 'ScheduleJob',
+    component: () => import('@/views/ScheduleJob.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

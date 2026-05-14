@@ -31,3 +31,17 @@ mybatis-plus:
 
 inventory:
   lock-expire-minutes: 15
+  warning-threshold: 10
+
+xxl:
+  job:
+    admin:
+      addresses: http://localhost:8080/xxl-job-admin
+    executor:
+      appname: inventory-service-executor
+      address:
+      ip:
+      port: 9998
+      logpath: ./logs/xxl-job/jobhandler
+      logretentiondays: 30
+    accessToken: default_token

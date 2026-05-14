@@ -344,3 +344,63 @@ export const configApi = {
     })
   }
 }
+
+export const scheduleJobApi = {
+  getJobList() {
+    return request({
+      url: '/schedule/job/list',
+      method: 'get'
+    })
+  },
+  getJobLogs(page, size, jobHandler, status) {
+    return request({
+      url: '/schedule/job/logs',
+      method: 'get',
+      params: { page, size, jobHandler, status }
+    })
+  },
+  getRecentLogs(jobHandler, limit) {
+    return request({
+      url: '/schedule/job/logs/recent',
+      method: 'get',
+      params: { jobHandler, limit }
+    })
+  }
+}
+
+export const notificationApi = {
+  list(page, size, userId, type) {
+    return request({
+      url: '/notification/list',
+      method: 'get',
+      params: { page, size, userId, type }
+    })
+  },
+  getUnreadCount(userId) {
+    return request({
+      url: '/notification/unread/count',
+      method: 'get',
+      params: { userId }
+    })
+  },
+  markAsRead(id) {
+    return request({
+      url: `/notification/read/${id}`,
+      method: 'post'
+    })
+  },
+  markBatchAsRead(userId, ids) {
+    return request({
+      url: '/notification/read/batch',
+      method: 'post',
+      data: { userId, ids }
+    })
+  },
+  markAllAsRead(userId) {
+    return request({
+      url: '/notification/read/all',
+      method: 'post',
+      data: { userId }
+    })
+  }
+}
