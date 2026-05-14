@@ -126,10 +126,90 @@ export const paymentApi = {
       data
     })
   },
-  process(payNo) {
+  process(payNo, success) {
     return request({
-      url: `/payment/process/${payNo}`,
+      url: `/payment/process/${payNo}?success=${success}`,
       method: 'post'
+    })
+  },
+  getByOrderNo(orderNo) {
+    return request({
+      url: `/payment/order/${orderNo}`,
+      method: 'get'
+    })
+  },
+  getUserPayments(userId) {
+    return request({
+      url: `/payment/user/${userId}`,
+      method: 'get'
+    })
+  },
+  mockPaySuccess(payNo) {
+    return request({
+      url: `/payment/mock/pay-success?payNo=${payNo}`,
+      method: 'post'
+    })
+  },
+  mockPayFail(payNo) {
+    return request({
+      url: `/payment/mock/pay-fail?payNo=${payNo}`,
+      method: 'post'
+    })
+  }
+}
+
+export const refundApi = {
+  apply(data) {
+    return request({
+      url: '/payment/refund/apply',
+      method: 'post',
+      data
+    })
+  },
+  audit(data) {
+    return request({
+      url: '/payment/refund/audit',
+      method: 'post',
+      data
+    })
+  },
+  getUserRefunds(userId) {
+    return request({
+      url: `/payment/refund/user/${userId}`,
+      method: 'get'
+    })
+  },
+  getPendingAudit() {
+    return request({
+      url: '/payment/refund/pending-audit',
+      method: 'get'
+    })
+  },
+  getDetail(refundNo) {
+    return request({
+      url: `/payment/refund/${refundNo}`,
+      method: 'get'
+    })
+  },
+  mockRefundSuccess(refundNo) {
+    return request({
+      url: `/payment/mock/refund-success?refundNo=${refundNo}`,
+      method: 'post'
+    })
+  },
+  mockRefundFail(refundNo) {
+    return request({
+      url: `/payment/mock/refund-fail?refundNo=${refundNo}`,
+      method: 'post'
+    })
+  }
+}
+
+export const callbackApi = {
+  getList(callbackType) {
+    return request({
+      url: `/payment/callback/list?callbackType=${callbackType || ''}`,
+      method: 'get'
     })
   }
 }

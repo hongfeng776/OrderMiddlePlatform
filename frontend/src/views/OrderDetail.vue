@@ -29,6 +29,22 @@
               <el-icon><Plus /></el-icon>
               <span>创建订单</span>
             </el-menu-item>
+            <el-menu-item index="/payments">
+              <el-icon><Wallet /></el-icon>
+              <span>支付记录</span>
+            </el-menu-item>
+            <el-menu-item index="/refunds">
+              <el-icon><Refund /></el-icon>
+              <span>我的退款</span>
+            </el-menu-item>
+            <el-menu-item index="/refund-audit">
+              <el-icon><Check /></el-icon>
+              <span>退款审核</span>
+            </el-menu-item>
+            <el-menu-item index="/callback-logs">
+              <el-icon><Document /></el-icon>
+              <span>回调日志</span>
+            </el-menu-item>
             <el-menu-item index="/profile">
               <el-icon><User /></el-icon>
               <span>个人中心</span>
@@ -137,11 +153,57 @@
                     >
                       确认收货
                     </el-button>
+                    <el-button
+                      v-if="order.orderStatus === 1 || order.orderStatus === 2 || order.orderStatus === 3 || order.orderStatus === 4"
+                      type="warning"
+                      @click="openRefundDialog"
+                    >
+                      申请退款
+                    </el-button>
                   </div>
                 </el-form-item>
               </el-form>
             </div>
           </el-card>
+
+          <el-dialog
+            v-model="refundDialogVisible"
+            title="申请退款"
+            width="500px"
+          >
+            <el-form :model="refundForm" label-width="100px">
+              <el-form-item label="订单编号">
+                <span>{{ order?.orderNo }}</span>
+              </el-form-item>
+              <el-form-item label="支付单号">
+                <span>{{ payment?.payNo }}</span>
+              </el-form-item>
+              <el-form-item label="退款金额">
+                <el-input-number
+                  v-model="refundForm.refundAmount"
+                  :min="0.01"
+                  :max="payment?.payAmount || 0"
+                  :precision="2"
+                  style="width: 100%"
+                />
+              </el-form-item>
+              <el-form-item label="退款原因">
+                <el-input
+                  v-model="refundForm.refundReason"
+                  type="textarea"
+                  :rows="4"
+                  placeholder="请输入退款原因"
+                />
+              </el-form-item>
+            </el-form>
+
+            <template #footer>
+              <el-button @click="refundDialogVisible = false">取消</el-button>
+              <el-button type="primary" :loading="submittingRefund" @click="submitRefund">
+                提交申请
+              </el-button>
+            </template>
+          </el-dialog>
         </el-main>
       </el-container>
     </el-container>
@@ -152,13 +214,13 @@
 import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
-import { orderApi } from '@/api'
+import { orderApi, paymentApi, refundApi } from '@/api'
 import { ElMessage } from 'element-plus'
-import { HomeFilled, List, Bell, Plus, User } from '@element-plus/icons-vue'
+import { HomeFilled, List, Bell, Plus, User, Wallet, Refund, Check, Document } from '@element-plus/icons-vue'
 
 export default {
   name: 'OrderDetail',
-  components: { HomeFilled, List, Bell, Plus, User },
+  components: { HomeFilled, List, Bell, Plus, User, Wallet, Refund, Check, Document },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -169,9 +231,16 @@ export default {
       order: null,
       items: [],
       statusHistory: [],
+      payment: null,
       actionForm: {
         remark: ''
-      }
+      },
+      refundDialogVisible: false,
+      refundForm: {
+        refundAmount: '',
+        refundReason: ''
+      },
+      submittingRefund: false
     })
 
     const userInfo = computed(() => store.state.user)
@@ -187,10 +256,48 @@ export default {
         state.statusHistory = res.data.statusHistory.sort((a, b) => {
           return new Date(a.createTime) - new Date(b.createTime)
         })
+        
+        if (state.order.orderStatus >= 1) {
+          const payRes = await paymentApi.getByOrderNo(route.params.orderNo)
+          state.payment = payRes.data
+        }
       } catch (error) {
         ElMessage.error('加载订单详情失败')
       } finally {
         state.loading = false
+      }
+    }
+
+    const openRefundDialog = () => {
+      if (!state.payment) {
+        ElMessage.error('支付信息不存在')
+        return
+      }
+      state.refundForm.refundAmount = state.payment.payAmount
+      state.refundForm.refundReason = ''
+      state.refundDialogVisible = true
+    }
+
+    const submitRefund = async () => {
+      if (!state.refundForm.refundReason) {
+        ElMessage.error('请输入退款原因')
+        return
+      }
+      state.submittingRefund = true
+      try {
+        await refundApi.apply({
+          orderNo: state.order.orderNo,
+          payNo: state.payment.payNo,
+          userId: store.state.user.id,
+          refundAmount: state.refundForm.refundAmount,
+          refundReason: state.refundForm.refundReason
+        })
+        ElMessage.success('退款申请提交成功')
+        state.refundDialogVisible = false
+      } catch (error) {
+        ElMessage.error('退款申请提交失败')
+      } finally {
+        state.submittingRefund = false
       }
     }
 
@@ -297,6 +404,8 @@ export default {
       handleCancel,
       handleShip,
       handleComplete,
+      openRefundDialog,
+      submitRefund,
       ...toRefs(state)
     }
   }

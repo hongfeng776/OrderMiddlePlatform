@@ -129,6 +129,51 @@ INSERT INTO `user` (`username`, `password`, `nickname`, `phone`) VALUES
 ('admin', '123456', '管理员', '13800138000'),
 ('test', '123456', '测试用户', '13800138001');
 
+CREATE TABLE IF NOT EXISTS `refund_record` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '退款记录ID',
+    `refund_no` VARCHAR(64) NOT NULL COMMENT '退款单号',
+    `order_no` VARCHAR(64) NOT NULL COMMENT '订单编号',
+    `pay_no` VARCHAR(64) NOT NULL COMMENT '支付流水号',
+    `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `refund_amount` DECIMAL(10,2) NOT NULL COMMENT '退款金额',
+    `refund_reason` VARCHAR(500) COMMENT '退款原因',
+    `refund_status` TINYINT NOT NULL DEFAULT 0 COMMENT '退款状态：0-待审核，1-审核通过，2-审核拒绝，3-退款中，4-退款成功，5-退款失败',
+    `audit_user_id` BIGINT COMMENT '审核人ID',
+    `audit_time` DATETIME COMMENT '审核时间',
+    `audit_remark` VARCHAR(500) COMMENT '审核备注',
+    `refund_time` DATETIME COMMENT '退款完成时间',
+    `third_party_refund_no` VARCHAR(128) COMMENT '第三方退款流水号',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_refund_no` (`refund_no`),
+    KEY `idx_order_no` (`order_no`),
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_refund_status` (`refund_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='退款记录表';
+
+CREATE TABLE IF NOT EXISTS `callback_log` (
+    `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '回调日志ID',
+    `callback_no` VARCHAR(64) NOT NULL COMMENT '回调流水号',
+    `callback_type` TINYINT NOT NULL COMMENT '回调类型：1-支付回调，2-退款回调',
+    `business_no` VARCHAR(64) NOT NULL COMMENT '业务单号（支付单号或退款单号）',
+    `order_no` VARCHAR(64) COMMENT '订单编号',
+    `request_data` TEXT COMMENT '请求数据',
+    `response_data` TEXT COMMENT '响应数据',
+    `callback_status` TINYINT NOT NULL DEFAULT 0 COMMENT '回调状态：0-待处理，1-处理成功，2-处理失败',
+    `error_msg` TEXT COMMENT '错误信息',
+    `retry_count` INT NOT NULL DEFAULT 0 COMMENT '重试次数',
+    `next_retry_time` DATETIME COMMENT '下次重试时间',
+    `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
+    `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
+    PRIMARY KEY (`id`),
+    UNIQUE KEY `uk_callback_no` (`callback_no`),
+    KEY `idx_business_no` (`business_no`),
+    KEY `idx_order_no` (`order_no`),
+    KEY `idx_callback_type` (`callback_type`),
+    KEY `idx_callback_status` (`callback_status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='回调日志表';
+
 INSERT INTO `product_inventory` (`product_id`, `product_name`, `product_image`, `price`, `stock_num`) VALUES
 (1, 'iPhone 15 Pro', 'https://example.com/iphone15.jpg', 7999.00, 100),
 (2, 'MacBook Pro 14', 'https://example.com/macbook.jpg', 14999.00, 50),

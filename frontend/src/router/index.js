@@ -42,6 +42,36 @@ const routes = [
     name: 'Profile',
     component: () => import('@/views/Profile.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/pay/:payNo',
+    name: 'Payment',
+    component: () => import('@/views/Payment.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/payments',
+    name: 'Payments',
+    component: () => import('@/views/Payments.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/refunds',
+    name: 'Refunds',
+    component: () => import('@/views/Refunds.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/refund-audit',
+    name: 'RefundAudit',
+    component: () => import('@/views/RefundAudit.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/callback-logs',
+    name: 'CallbackLogs',
+    component: () => import('@/views/CallbackLogs.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

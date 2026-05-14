@@ -24,6 +24,22 @@
               <el-icon><Plus /></el-icon>
               <span>创建订单</span>
             </el-menu-item>
+            <el-menu-item index="/payments">
+              <el-icon><Wallet /></el-icon>
+              <span>支付记录</span>
+            </el-menu-item>
+            <el-menu-item index="/refunds">
+              <el-icon><Refund /></el-icon>
+              <span>我的退款</span>
+            </el-menu-item>
+            <el-menu-item index="/refund-audit">
+              <el-icon><Check /></el-icon>
+              <span>退款审核</span>
+            </el-menu-item>
+            <el-menu-item index="/callback-logs">
+              <el-icon><Document /></el-icon>
+              <span>回调日志</span>
+            </el-menu-item>
             <el-menu-item index="/profile">
               <el-icon><User /></el-icon>
               <span>个人中心</span>
@@ -118,11 +134,11 @@ import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { orderApi, inventoryApi } from '@/api'
-import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck } from '@element-plus/icons-vue'
+import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document } from '@element-plus/icons-vue'
 
 export default {
   name: 'Home',
-  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck },
+  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document },
   setup() {
     const store = useStore()
     const router = useRouter()
