@@ -3,6 +3,7 @@ package com.orderplatform.order.service;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.orderplatform.common.enums.OrderStatusEnum;
+import com.orderplatform.common.enums.OrderStatusTransition;
 import com.orderplatform.common.exception.BusinessException;
 import com.orderplatform.common.dto.CreateOrderDTO;
 import com.orderplatform.order.entity.Order;
@@ -35,6 +36,9 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @Autowired
     private OrderMessageProducer orderMessageProducer;
+
+    @Autowired
+    private SmsService smsService;
 
     @Transactional(rollbackFor = Exception.class)
     public Order createOrder(CreateOrderDTO dto) {
@@ -96,6 +100,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             
             orderMessageProducer.sendOrderStatusChange(orderNo, dto.getUserId(), null, OrderStatusEnum.PENDING_PAYMENT.getCode());
             orderMessageProducer.sendNotification(dto.getUserId(), orderNo, "订单创建成功", "您的订单已创建成功，请及时支付", 1);
+            smsService.sendOrderCreated(dto.getReceiverPhone(), orderNo);
             
             log.info("订单创建成功: orderNo={}", orderNo);
             return order;
@@ -112,6 +117,16 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         }
     }
 
+    private void validateStatusTransition(String orderNo, Integer currentStatus, Integer nextStatus) {
+        if (!OrderStatusTransition.canTransition(currentStatus, nextStatus)) {
+            String currentStatusName = OrderStatusTransition.getStatusName(currentStatus);
+            String nextStatusName = OrderStatusTransition.getStatusName(nextStatus);
+            throw new BusinessException(
+                String.format("订单状态不允许流转: 从[%s]到[%s]", currentStatusName, nextStatusName)
+            );
+        }
+    }
+
     @Transactional(rollbackFor = Exception.class)
     public boolean paySuccess(String orderNo) {
         Order order = getOrderByNo(orderNo);
@@ -119,9 +134,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             throw new BusinessException("订单不存在");
         }
         Integer previousStatus = order.getOrderStatus();
-        if (!OrderStatusEnum.PENDING_PAYMENT.getCode().equals(previousStatus)) {
-            throw new BusinessException("订单状态异常");
-        }
+        validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.PAID.getCode());
         
         List<OrderItem> orderItems = getOrderItems(order.getId());
         
@@ -145,6 +158,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         
         orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.PAID.getCode());
         orderMessageProducer.sendNotification(order.getUserId(), orderNo, "支付成功", "您的订单已支付成功，等待商家发货", 1);
+        smsService.sendPaymentSuccess(order.getReceiverPhone(), orderNo);
         
         log.info("支付成功: orderNo={}", orderNo);
         return true;
@@ -157,9 +171,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             throw new BusinessException("订单不存在");
         }
         Integer previousStatus = order.getOrderStatus();
-        if (!OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
-            throw new BusinessException("订单状态异常，当前状态不可发货");
-        }
+        validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.SHIPPED.getCode());
         
         order.setOrderStatus(OrderStatusEnum.SHIPPED.getCode());
         order.setShipTime(LocalDateTime.now());
@@ -168,6 +180,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         
         orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.SHIPPED.getCode());
         orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已发货", "您的订单已发货，请注意查收", 1);
+        smsService.sendOrderShipped(order.getReceiverPhone(), orderNo);
         
         log.info("订单发货成功: orderNo={}", orderNo);
         return true;
@@ -180,9 +193,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             throw new BusinessException("订单不存在");
         }
         Integer previousStatus = order.getOrderStatus();
-        if (!OrderStatusEnum.SHIPPED.getCode().equals(previousStatus)) {
-            throw new BusinessException("订单状态异常，当前状态不可完成");
-        }
+        validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.COMPLETED.getCode());
         
         order.setOrderStatus(OrderStatusEnum.COMPLETED.getCode());
         order.setFinishTime(LocalDateTime.now());
@@ -191,6 +202,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         
         orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.COMPLETED.getCode());
         orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已完成", "您的订单已完成，感谢您的购买", 1);
+        smsService.sendOrderCompleted(order.getReceiverPhone(), orderNo);
         
         log.info("订单完成: orderNo={}", orderNo);
         return true;
@@ -203,10 +215,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             throw new BusinessException("订单不存在");
         }
         Integer previousStatus = order.getOrderStatus();
-        if (!OrderStatusEnum.PENDING_PAYMENT.getCode().equals(previousStatus) && 
-            !OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
-            throw new BusinessException("订单状态异常，当前状态不可取消");
-        }
+        validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.CANCELLED.getCode());
         
         if (OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
             List<OrderItem> orderItems = getOrderItems(order.getId());
@@ -226,6 +235,7 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         
         orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.CANCELLED.getCode());
         orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已取消", "您的订单已取消", 1);
+        smsService.sendOrderCancelled(order.getReceiverPhone(), orderNo);
         
         log.info("订单取消成功: orderNo={}", orderNo);
         return true;

@@ -20,9 +20,10 @@
               <el-icon><List /></el-icon>
               <span>订单列表</span>
             </el-menu-item>
-            <el-menu-item index="/notifications">
+            <el-menu-item index="/notifications" class="notification-menu-item">
               <el-icon><Bell /></el-icon>
               <span>通知中心</span>
+              <el-badge v-if="unreadCount > 0" :value="unreadCount" :max="99" class="notification-badge" />
             </el-menu-item>
             <el-menu-item index="/create-order">
               <el-icon><Plus /></el-icon>
@@ -126,7 +127,18 @@ export default {
     
     const userInfo = computed(() => store.state.user)
     const activeMenu = computed(() => route.path)
+    const unreadCount = computed(() => store.getters.unreadCount)
     
+    const loadUnreadCount = async () => {
+      if (!userInfo.value.userId) return
+      try {
+        const res = await orderApi.getUnreadCount(userInfo.value.userId)
+        store.dispatch('setUnreadCount', res.data)
+      } catch (error) {
+        console.error('加载未读数量失败:', error)
+      }
+    }
+
     const loadOrders = async () => {
       state.loading = true
       try {
@@ -184,17 +196,20 @@ export default {
     
     onMounted(() => {
       loadOrders()
+      loadUnreadCount()
     })
     
     watch(() => route.path, (newPath) => {
       if (newPath === '/orders') {
         loadOrders()
       }
+      loadUnreadCount()
     })
     
     return {
       userInfo,
       activeMenu,
+      unreadCount,
       logout,
       getStatusType,
       getStatusText,
@@ -242,6 +257,16 @@ export default {
 
 .menu {
   border: none;
+}
+
+.notification-menu-item {
+  position: relative;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 8px;
+  right: 15px;
 }
 
 .main {
