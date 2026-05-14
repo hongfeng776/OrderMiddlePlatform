@@ -372,6 +372,26 @@ export const scheduleJobApi = {
       method: 'get',
       params: { jobHandler }
     })
+  },
+  triggerJob(jobHandler, executorParam) {
+    return request({
+      url: '/schedule/job/trigger',
+      method: 'post',
+      data: { jobHandler, executorParam }
+    })
+  },
+  stopJob(jobId) {
+    return request({
+      url: `/schedule/job/stop/${jobId}`,
+      method: 'post'
+    })
+  },
+  exportLogs(jobHandler, status) {
+    const params = new URLSearchParams()
+    if (jobHandler) params.append('jobHandler', jobHandler)
+    if (status != null) params.append('status', status)
+    const url = `/api/schedule/job/logs/export?${params.toString()}`
+    window.open(url, '_blank')
   }
 }
 
