@@ -97,13 +97,17 @@ CREATE TABLE IF NOT EXISTS `order_status_log` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '状态日志ID',
     `order_no` VARCHAR(64) NOT NULL COMMENT '订单编号',
     `user_id` BIGINT NOT NULL COMMENT '用户ID',
+    `operator_type` VARCHAR(32) COMMENT '操作人类型',
+    `operator_name` VARCHAR(100) COMMENT '操作人名称',
     `previous_status` TINYINT COMMENT '之前状态',
     `current_status` TINYINT NOT NULL COMMENT '当前状态',
+    `action_type` VARCHAR(100) COMMENT '操作类型',
     `remark` VARCHAR(500) COMMENT '备注',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_order_no` (`order_no`),
-    KEY `idx_user_id` (`user_id`)
+    KEY `idx_user_id` (`user_id`),
+    KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='订单状态日志表';
 
 CREATE TABLE IF NOT EXISTS `notification` (
@@ -117,7 +121,8 @@ CREATE TABLE IF NOT EXISTS `notification` (
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     PRIMARY KEY (`id`),
     KEY `idx_user_id` (`user_id`),
-    KEY `idx_order_no` (`order_no`)
+    KEY `idx_order_no` (`order_no`),
+    KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';
 
 INSERT INTO `user` (`username`, `password`, `nickname`, `phone`) VALUES
