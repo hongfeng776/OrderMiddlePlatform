@@ -72,6 +72,11 @@ public class GatewayController {
         return inventoryFeignClient.rollbackStock(params);
     }
 
+    @PostMapping("/inventory/rollback-order/{orderNo}")
+    public Result<Boolean> rollbackOrderStock(@PathVariable String orderNo) {
+        return inventoryFeignClient.rollbackOrderStock(orderNo);
+    }
+
     @PostMapping("/order/create")
     public Result createOrder(@RequestBody Map<String, Object> params) {
         return orderFeignClient.createOrder(params);

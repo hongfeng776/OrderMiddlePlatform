@@ -77,4 +77,10 @@ public class ProductInventoryController {
         boolean result = productInventoryService.rollbackStock(productId, count, orderNo);
         return Result.success(result);
     }
+
+    @PostMapping("/rollback-order/{orderNo}")
+    public Result<Boolean> rollbackOrderStock(@PathVariable String orderNo) {
+        boolean result = productInventoryService.rollbackStockByOrderNo(orderNo);
+        return Result.success(result);
+    }
 }

@@ -114,7 +114,7 @@
 </template>
 
 <script>
-import { computed, onMounted, reactive, toRefs } from 'vue'
+import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { orderApi, inventoryApi } from '@/api'
@@ -160,6 +160,12 @@ export default {
     
     onMounted(() => {
       loadData()
+    })
+    
+    watch(() => route.path, (newPath) => {
+      if (newPath === '/') {
+        loadData()
+      }
     })
     
     return {

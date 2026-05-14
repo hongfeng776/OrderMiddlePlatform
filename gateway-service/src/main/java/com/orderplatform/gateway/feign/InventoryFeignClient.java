@@ -30,4 +30,7 @@ public interface InventoryFeignClient {
 
     @PostMapping("/inventory/rollback")
     Result<Boolean> rollbackStock(@RequestBody Map<String, Object> params);
+
+    @PostMapping("/inventory/rollback-order/{orderNo}")
+    Result<Boolean> rollbackOrderStock(@PathVariable("orderNo") String orderNo);
 }

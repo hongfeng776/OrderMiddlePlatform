@@ -98,10 +98,10 @@
 </template>
 
 <script>
-import { computed, onMounted, reactive, toRefs } from 'vue'
+import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
-import { orderApi, paymentApi } from '@/api'
+import { orderApi } from '@/api'
 import { ElMessage } from 'element-plus'
 import { HomeFilled, List, Plus, User } from '@element-plus/icons-vue'
 
@@ -186,6 +186,12 @@ export default {
     
     onMounted(() => {
       loadOrders()
+    })
+    
+    watch(() => route.path, (newPath) => {
+      if (newPath === '/orders') {
+        loadOrders()
+      }
     })
     
     return {
