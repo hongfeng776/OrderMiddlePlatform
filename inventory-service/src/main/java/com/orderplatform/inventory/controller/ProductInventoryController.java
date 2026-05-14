@@ -1,0 +1,50 @@
+package com.orderplatform.inventory.controller;
+
+import com.orderplatform.common.result.Result;
+import com.orderplatform.inventory.entity.ProductInventory;
+import com.orderplatform.inventory.service.ProductInventoryService;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
+
+@Slf4j
+@RestController
+@RequestMapping("/inventory")
+public class ProductInventoryController {
+
+    @Autowired
+    private ProductInventoryService productInventoryService;
+
+    @GetMapping("/list")
+    public Result<List<ProductInventory>> listAll() {
+        List<ProductInventory> list = productInventoryService.listAll();
+        return Result.success(list);
+    }
+
+    @GetMapping("/{productId}")
+    public Result<ProductInventory> getByProductId(@PathVariable Long productId) {
+        ProductInventory inventory = productInventoryService.getByProductId(productId);
+        return Result.success(inventory);
+    }
+
+    @PostMapping("/lock")
+    public Result<Boolean> lockStock(@RequestBody Map<String, Object> params) {
+        Long productId = Long.valueOf(params.get("productId").toString());
+        Integer count = Integer.valueOf(params.get("count").toString());
+        
+        boolean result = productInventoryService.lockStock(productId, count);
+        return Result.success(result);
+    }
+
+    @PostMapping("/unlock")
+    public Result<Boolean> unlockStock(@RequestBody Map<String, Object> params) {
+        Long productId = Long.valueOf(params.get("productId").toString());
+        Integer count = Integer.valueOf(params.get("count").toString());
+        
+        boolean result = productInventoryService.unlockStock(productId, count);
+        return Result.success(result);
+    }
+}
