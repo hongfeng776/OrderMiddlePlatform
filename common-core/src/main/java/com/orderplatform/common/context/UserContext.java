@@ -1,0 +1,37 @@
+package com.orderplatform.common.context;
+
+public class UserContext {
+    private static final ThreadLocal<Long> userIdHolder = new ThreadLocal<>();
+    private static final ThreadLocal<String> roleHolder = new ThreadLocal<>();
+    private static final ThreadLocal<String> permissionsHolder = new ThreadLocal<>();
+
+    public static void setUserId(Long userId) {
+        userIdHolder.set(userId);
+    }
+
+    public static Long getUserId() {
+        return userIdHolder.get();
+    }
+
+    public static void setRole(String role) {
+        roleHolder.set(role);
+    }
+
+    public static String getRole() {
+        return roleHolder.get();
+    }
+
+    public static void setPermissions(String permissions) {
+        permissionsHolder.set(permissions);
+    }
+
+    public static String getPermissions() {
+        return permissionsHolder.get();
+    }
+
+    public static void clear() {
+        userIdHolder.remove();
+        roleHolder.remove();
+        permissionsHolder.remove();
+    }
+}
