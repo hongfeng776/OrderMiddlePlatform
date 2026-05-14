@@ -98,7 +98,8 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
                 orderItemMapper.insert(orderItem);
             }
             
-            orderMessageProducer.sendOrderStatusChange(orderNo, dto.getUserId(), null, OrderStatusEnum.PENDING_PAYMENT.getCode());
+            orderMessageProducer.sendOrderStatusChange(orderNo, dto.getUserId(), null, 
+                OrderStatusEnum.PENDING_PAYMENT.getCode(), "创建订单", "用户创建订单");
             orderMessageProducer.sendNotification(dto.getUserId(), orderNo, "订单创建成功", "您的订单已创建成功，请及时支付", 1);
             smsService.sendOrderCreated(dto.getReceiverPhone(), orderNo);
             
@@ -129,6 +130,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean paySuccess(String orderNo) {
+        return paySuccess(orderNo, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean paySuccess(String orderNo, String remark) {
         Order order = getOrderByNo(orderNo);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -156,8 +162,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
         
-        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.PAID.getCode());
-        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "支付成功", "您的订单已支付成功，等待商家发货", 1);
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, 
+            OrderStatusEnum.PAID.getCode(), "支付成功", remark != null ? remark : "用户完成支付");
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "支付成功", 
+            remark != null ? remark : "您的订单已支付成功，等待商家发货", 1);
         smsService.sendPaymentSuccess(order.getReceiverPhone(), orderNo);
         
         log.info("支付成功: orderNo={}", orderNo);
@@ -166,6 +174,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean ship(String orderNo) {
+        return ship(orderNo, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean ship(String orderNo, String remark) {
         Order order = getOrderByNo(orderNo);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -178,8 +191,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
         
-        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.SHIPPED.getCode());
-        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已发货", "您的订单已发货，请注意查收", 1);
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, 
+            OrderStatusEnum.SHIPPED.getCode(), "订单已发货", remark != null ? remark : "商家已发货");
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已发货", 
+            remark != null ? remark : "您的订单已发货，请注意查收", 1);
         smsService.sendOrderShipped(order.getReceiverPhone(), orderNo);
         
         log.info("订单发货成功: orderNo={}", orderNo);
@@ -188,6 +203,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean complete(String orderNo) {
+        return complete(orderNo, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean complete(String orderNo, String remark) {
         Order order = getOrderByNo(orderNo);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -200,8 +220,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
         
-        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.COMPLETED.getCode());
-        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已完成", "您的订单已完成，感谢您的购买", 1);
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, 
+            OrderStatusEnum.COMPLETED.getCode(), "订单已完成", remark != null ? remark : "用户确认收货");
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已完成", 
+            remark != null ? remark : "您的订单已完成，感谢您的购买", 1);
         smsService.sendOrderCompleted(order.getReceiverPhone(), orderNo);
         
         log.info("订单完成: orderNo={}", orderNo);
@@ -210,6 +232,11 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
 
     @Transactional(rollbackFor = Exception.class)
     public boolean cancel(String orderNo) {
+        return cancel(orderNo, null);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public boolean cancel(String orderNo, String remark) {
         Order order = getOrderByNo(orderNo);
         if (order == null) {
             throw new BusinessException("订单不存在");
@@ -233,8 +260,10 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         order.setUpdateTime(LocalDateTime.now());
         updateById(order);
         
-        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, OrderStatusEnum.CANCELLED.getCode());
-        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已取消", "您的订单已取消", 1);
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus, 
+            OrderStatusEnum.CANCELLED.getCode(), "订单已取消", remark != null ? remark : "用户取消订单");
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "订单已取消", 
+            remark != null ? remark : "您的订单已取消", 1);
         smsService.sendOrderCancelled(order.getReceiverPhone(), orderNo);
         
         log.info("订单取消成功: orderNo={}", orderNo);

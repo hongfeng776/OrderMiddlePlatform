@@ -63,26 +63,34 @@ public class OrderController {
     }
 
     @PostMapping("/pay-success/{orderNo}")
-    public Result<Boolean> paySuccess(@PathVariable String orderNo) {
-        boolean result = orderService.paySuccess(orderNo);
+    public Result<Boolean> paySuccess(@PathVariable String orderNo, 
+                                      @RequestBody(required = false) Map<String, String> body) {
+        String remark = body != null ? body.get("remark") : null;
+        boolean result = orderService.paySuccess(orderNo, remark);
         return Result.success(result);
     }
 
     @PostMapping("/ship/{orderNo}")
-    public Result<Boolean> ship(@PathVariable String orderNo) {
-        boolean result = orderService.ship(orderNo);
+    public Result<Boolean> ship(@PathVariable String orderNo,
+                                 @RequestBody(required = false) Map<String, String> body) {
+        String remark = body != null ? body.get("remark") : null;
+        boolean result = orderService.ship(orderNo, remark);
         return Result.success(result);
     }
 
     @PostMapping("/complete/{orderNo}")
-    public Result<Boolean> complete(@PathVariable String orderNo) {
-        boolean result = orderService.complete(orderNo);
+    public Result<Boolean> complete(@PathVariable String orderNo,
+                                     @RequestBody(required = false) Map<String, String> body) {
+        String remark = body != null ? body.get("remark") : null;
+        boolean result = orderService.complete(orderNo, remark);
         return Result.success(result);
     }
 
     @PostMapping("/cancel/{orderNo}")
-    public Result<Boolean> cancel(@PathVariable String orderNo) {
-        boolean result = orderService.cancel(orderNo);
+    public Result<Boolean> cancel(@PathVariable String orderNo,
+                                   @RequestBody(required = false) Map<String, String> body) {
+        String remark = body != null ? body.get("remark") : null;
+        boolean result = orderService.cancel(orderNo, remark);
         return Result.success(result);
     }
 
@@ -107,6 +115,14 @@ public class OrderController {
     @PostMapping("/notifications/mark-read/{id}")
     public Result<Boolean> markAsRead(@PathVariable Long id) {
         boolean result = notificationService.markAsRead(id);
+        return Result.success(result);
+    }
+
+    @PostMapping("/notifications/mark-batch-read/{userId}")
+    public Result<Boolean> markBatchAsRead(@PathVariable Long userId,
+                                            @RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.get("ids");
+        boolean result = notificationService.markBatchAsRead(userId, ids);
         return Result.success(result);
     }
 

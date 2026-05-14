@@ -51,28 +51,32 @@ export const orderApi = {
       method: 'get'
     })
   },
-  paySuccess(orderNo) {
+  paySuccess(orderNo, remark) {
     return request({
       url: `/order/pay-success/${orderNo}`,
-      method: 'post'
+      method: 'post',
+      data: remark ? { remark } : null
     })
   },
-  ship(orderNo) {
+  ship(orderNo, remark) {
     return request({
       url: `/order/ship/${orderNo}`,
-      method: 'post'
+      method: 'post',
+      data: remark ? { remark } : null
     })
   },
-  complete(orderNo) {
+  complete(orderNo, remark) {
     return request({
       url: `/order/complete/${orderNo}`,
-      method: 'post'
+      method: 'post',
+      data: remark ? { remark } : null
     })
   },
-  cancel(orderNo) {
+  cancel(orderNo, remark) {
     return request({
       url: `/order/cancel/${orderNo}`,
-      method: 'post'
+      method: 'post',
+      data: remark ? { remark } : null
     })
   },
   getStatusHistory(orderNo) {
@@ -97,6 +101,13 @@ export const orderApi = {
     return request({
       url: `/order/notifications/mark-read/${id}`,
       method: 'post'
+    })
+  },
+  markBatchAsRead(userId, ids) {
+    return request({
+      url: `/order/notifications/mark-batch-read/${userId}`,
+      method: 'post',
+      data: { ids }
     })
   },
   markAllAsRead(userId) {

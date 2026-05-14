@@ -83,23 +83,27 @@ public class GatewayController {
     }
 
     @PostMapping("/order/pay-success/{orderNo}")
-    public Result<Boolean> paySuccess(@PathVariable String orderNo) {
-        return orderFeignClient.paySuccess(orderNo);
+    public Result<Boolean> paySuccess(@PathVariable String orderNo,
+                                       @RequestBody(required = false) Map<String, String> body) {
+        return orderFeignClient.paySuccess(orderNo, body);
     }
 
     @PostMapping("/order/ship/{orderNo}")
-    public Result<Boolean> ship(@PathVariable String orderNo) {
-        return orderFeignClient.ship(orderNo);
+    public Result<Boolean> ship(@PathVariable String orderNo,
+                                 @RequestBody(required = false) Map<String, String> body) {
+        return orderFeignClient.ship(orderNo, body);
     }
 
     @PostMapping("/order/complete/{orderNo}")
-    public Result<Boolean> complete(@PathVariable String orderNo) {
-        return orderFeignClient.complete(orderNo);
+    public Result<Boolean> complete(@PathVariable String orderNo,
+                                     @RequestBody(required = false) Map<String, String> body) {
+        return orderFeignClient.complete(orderNo, body);
     }
 
     @PostMapping("/order/cancel/{orderNo}")
-    public Result<Boolean> cancel(@PathVariable String orderNo) {
-        return orderFeignClient.cancel(orderNo);
+    public Result<Boolean> cancel(@PathVariable String orderNo,
+                                   @RequestBody(required = false) Map<String, String> body) {
+        return orderFeignClient.cancel(orderNo, body);
     }
 
     @GetMapping("/order/status-history/{orderNo}")
@@ -120,6 +124,12 @@ public class GatewayController {
     @PostMapping("/order/notifications/mark-read/{id}")
     public Result markAsRead(@PathVariable Long id) {
         return orderFeignClient.markAsRead(id);
+    }
+
+    @PostMapping("/order/notifications/mark-batch-read/{userId}")
+    public Result markBatchAsRead(@PathVariable Long userId,
+                                   @RequestBody Map<String, List<Long>> body) {
+        return orderFeignClient.markBatchAsRead(userId, body);
     }
 
     @PostMapping("/order/notifications/mark-all-read/{userId}")

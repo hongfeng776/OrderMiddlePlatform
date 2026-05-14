@@ -14,16 +14,20 @@ public interface OrderFeignClient {
     Result createOrder(@RequestBody Map<String, Object> params);
 
     @PostMapping("/order/pay-success/{orderNo}")
-    Result<Boolean> paySuccess(@PathVariable("orderNo") String orderNo);
+    Result<Boolean> paySuccess(@PathVariable("orderNo") String orderNo,
+                               @RequestBody(required = false) Map<String, String> body);
 
     @PostMapping("/order/ship/{orderNo}")
-    Result<Boolean> ship(@PathVariable("orderNo") String orderNo);
+    Result<Boolean> ship(@PathVariable("orderNo") String orderNo,
+                          @RequestBody(required = false) Map<String, String> body);
 
     @PostMapping("/order/complete/{orderNo}")
-    Result<Boolean> complete(@PathVariable("orderNo") String orderNo);
+    Result<Boolean> complete(@PathVariable("orderNo") String orderNo,
+                              @RequestBody(required = false) Map<String, String> body);
 
     @PostMapping("/order/cancel/{orderNo}")
-    Result<Boolean> cancel(@PathVariable("orderNo") String orderNo);
+    Result<Boolean> cancel(@PathVariable("orderNo") String orderNo,
+                            @RequestBody(required = false) Map<String, String> body);
 
     @GetMapping("/order/list/{userId}")
     Result<List> listByUserId(@PathVariable("userId") Long userId);
@@ -42,6 +46,10 @@ public interface OrderFeignClient {
 
     @PostMapping("/order/notifications/mark-read/{id}")
     Result markAsRead(@PathVariable("id") Long id);
+
+    @PostMapping("/order/notifications/mark-batch-read/{userId}")
+    Result markBatchAsRead(@PathVariable("userId") Long userId,
+                            @RequestBody Map<String, List<Long>> body);
 
     @PostMapping("/order/notifications/mark-all-read/{userId}")
     Result markAllAsRead(@PathVariable("userId") Long userId);
