@@ -17,6 +17,12 @@ public class GlobalExceptionHandler {
         return Result.fail(e.getCode(), e.getMessage());
     }
 
+    @ExceptionHandler(IdempotentException.class)
+    public Result<Void> handleIdempotentException(IdempotentException e) {
+        log.error("幂等异常：{}", e.getMessage());
+        return Result.fail(429, e.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public Result<Void> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldError() != null 

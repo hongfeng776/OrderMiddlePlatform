@@ -48,7 +48,16 @@
               </div>
             </template>
             
+            <el-alert
+              title="请至少选择一件商品"
+              type="warning"
+              :closable="false"
+              style="margin-bottom: 15px"
+              v-show="selectedItems.length === 0"
+            />
+            
             <el-table
+              ref="productTableRef"
               :data="filteredProducts"
               stripe
               border
@@ -96,12 +105,17 @@
               </div>
             </template>
             
-            <el-form :model="receiverForm" label-width="100px">
+            <el-form
+              ref="orderFormRef"
+              :model="orderForm"
+              :rules="orderRules"
+              label-width="100px"
+            >
               <el-row :gutter="20">
                 <el-col :span="12">
-                  <el-form-item label="收货人" prop="name">
+                  <el-form-item label="收货人" prop="receiverName">
                     <el-select
-                      v-model="receiverForm.name"
+                      v-model="orderForm.receiverName"
                       placeholder="选择或输入收货人"
                       filterable
                       allow-create
@@ -122,26 +136,26 @@
                   </el-form-item>
                 </el-col>
                 <el-col :span="12">
-                  <el-form-item label="联系电话" prop="phone">
-                    <el-input v-model="receiverForm.phone" placeholder="请输入联系电话"></el-input>
+                  <el-form-item label="联系电话" prop="receiverPhone">
+                    <el-input v-model="orderForm.receiverPhone" placeholder="请输入联系电话" />
                   </el-form-item>
                 </el-col>
               </el-row>
-              <el-form-item label="收货地址" prop="address">
+              <el-form-item label="收货地址" prop="receiverAddress">
                 <el-input
-                  v-model="receiverForm.address"
+                  v-model="orderForm.receiverAddress"
                   type="textarea"
                   :rows="2"
                   placeholder="请输入收货地址"
-                ></el-input>
+                />
               </el-form-item>
               <el-form-item label="订单备注">
                 <el-input
-                  v-model="receiverForm.remark"
+                  v-model="orderForm.remark"
                   type="textarea"
                   :rows="2"
                   placeholder="请输入订单备注（可选）"
-                ></el-input>
+                />
               </el-form-item>
             </el-form>
           </el-card>
@@ -204,7 +218,7 @@ import { computed, onMounted, reactive, toRefs } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { inventoryApi, orderApi } from '@/api'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { HomeFilled, List, Plus, User } from '@element-plus/icons-vue'
 
 export default {
@@ -228,11 +242,25 @@ export default {
         { name: '李四', phone: '13800138002', address: '上海市浦东新区某某路456号' },
         { name: '王五', phone: '13800138003', address: '广州市天河区某某大道789号' }
       ],
-      receiverForm: {
-        name: '',
-        phone: '',
-        address: '',
+      orderForm: {
+        receiverName: '',
+        receiverPhone: '',
+        receiverAddress: '',
         remark: ''
+      },
+      orderRules: {
+        receiverName: [
+          { required: true, message: '请输入收货人姓名', trigger: 'blur' },
+          { min: 2, max: 20, message: '姓名长度在 2 到 20 个字符', trigger: 'blur' }
+        ],
+        receiverPhone: [
+          { required: true, message: '请输入联系电话', trigger: 'blur' },
+          { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号码', trigger: 'blur' }
+        ],
+        receiverAddress: [
+          { required: true, message: '请输入收货地址', trigger: 'blur' },
+          { min: 5, max: 200, message: '地址长度在 5 到 200 个字符', trigger: 'blur' }
+        ]
       }
     })
     
@@ -279,32 +307,64 @@ export default {
     const handleAddressSelect = (name) => {
       const address = state.savedAddresses.find(a => a.name === name)
       if (address) {
-        state.receiverForm.phone = address.phone
-        state.receiverForm.address = address.address
+        state.orderForm.receiverPhone = address.phone
+        state.orderForm.receiverAddress = address.address
       }
     }
     
-    const showConfirmDialog = () => {
+    const showConfirmDialog = async () => {
       if (state.selectedItems.length === 0) {
-        ElMessage.warning('请选择商品')
+        ElMessage.warning('请至少选择一件商品')
         return
       }
       
-      if (!state.receiverForm.name || !state.receiverForm.phone || !state.receiverForm.address) {
+      const valid = await validateForm()
+      if (!valid) {
         ElMessage.warning('请填写完整的收货信息')
         return
       }
       
+      for (const item of state.selectedItems) {
+        if (item.buyCount > item.stockNum) {
+          ElMessage.warning(`商品 ${item.productName} 库存不足，当前库存: ${item.stockNum}`)
+          return
+        }
+      }
+      
       state.confirmOrderData = {
-        receiverName: state.receiverForm.name,
-        receiverPhone: state.receiverForm.phone,
-        receiverAddress: state.receiverForm.address,
+        receiverName: state.orderForm.receiverName,
+        receiverPhone: state.orderForm.receiverPhone,
+        receiverAddress: state.orderForm.receiverAddress,
         totalAmount: totalAmount.value,
         itemCount: state.selectedItems.length,
         items: [...state.selectedItems]
       }
       
       state.confirmDialogVisible = true
+    }
+    
+    const validateForm = () => {
+      return new Promise((resolve) => {
+        const { receiverName, receiverPhone, receiverAddress } = state.orderForm
+        const phoneReg = /^1[3-9]\d{9}$/
+        
+        if (!receiverName || receiverName.length < 2 || receiverName.length > 20) {
+          resolve(false)
+          return
+        }
+        
+        if (!receiverPhone || !phoneReg.test(receiverPhone)) {
+          resolve(false)
+          return
+        }
+        
+        if (!receiverAddress || receiverAddress.length < 5 || receiverAddress.length > 200) {
+          resolve(false)
+          return
+        }
+        
+        resolve(true)
+      })
     }
     
     const submitOrder = async () => {
@@ -320,10 +380,10 @@ export default {
         
         const res = await orderApi.create({
           userId: userInfo.value.userId,
-          receiverName: state.receiverForm.name,
-          receiverPhone: state.receiverForm.phone,
-          receiverAddress: state.receiverForm.address,
-          remark: state.receiverForm.remark,
+          receiverName: state.orderForm.receiverName,
+          receiverPhone: state.orderForm.receiverPhone,
+          receiverAddress: state.orderForm.receiverAddress,
+          remark: state.orderForm.remark,
           items: items
         })
         
@@ -369,7 +429,7 @@ export default {
 }
 
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #667eea 0, #764ba2 100%);
   color: white;
   display: flex;
   justify-content: space-between;

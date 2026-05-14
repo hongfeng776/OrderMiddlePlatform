@@ -4,7 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.orderplatform.common.exception.BusinessException;
 import com.orderplatform.common.result.Result;
-import com.orderplatform.order.dto.CreateOrderDTO;
+import com.orderplatform.common.dto.CreateOrderDTO;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderItem;
 import com.orderplatform.order.feign.InventoryFeignClient;
