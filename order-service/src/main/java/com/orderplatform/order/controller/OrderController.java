@@ -224,15 +224,21 @@ public class OrderController {
     @RequiresPermission(PermissionConstants.ORDER_EXPORT)
     public ResponseEntity<byte[]> downloadExport(
             @RequestParam String objectName) throws IOException {
-        InputStream inputStream = minIOService.downloadFile(objectName);
-        byte[] data = inputStream.readAllBytes();
+        log.info("下载文件请求: {}", objectName);
+        byte[] data = minIOService.downloadFileAsBytes(objectName);
         
         String fileName = objectName.substring(objectName.lastIndexOf('/') + 1);
+        String encodedFileName = java.net.URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-        headers.setContentDispositionFormData("attachment", new String(fileName.getBytes("UTF-8"), "ISO-8859-1")));
+        headers.setContentLength(data.length);
+        headers.set("Content-Disposition", "attachment; filename=\"" + encodedFileName + "\"; filename*=UTF-8''" + encodedFileName);
+        headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        headers.set("Pragma", "no-cache");
+        headers.set("Expires", "0");
         
+        log.info("文件下载完成: {}，大小: {} bytes", fileName, data.length);
         return ResponseEntity.ok().headers(headers).body(data);
     }
 
