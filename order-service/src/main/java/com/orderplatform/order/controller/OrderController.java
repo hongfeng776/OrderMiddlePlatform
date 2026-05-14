@@ -163,8 +163,30 @@ public class OrderController {
     public Result<List<Order>> adminListOrders(
             @RequestParam(required = false) Integer orderStatus,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
-        List<Order> orders = orderService.list();
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
+            @RequestParam(required = false) Long userId,
+            @RequestParam(required = false) String orderNo) {
+        com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<Order> wrapper = 
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<>();
+        
+        if (orderStatus != null) {
+            wrapper.eq(Order::getOrderStatus, orderStatus);
+        }
+        if (userId != null) {
+            wrapper.eq(Order::getUserId, userId);
+        }
+        if (orderNo != null && !orderNo.trim().isEmpty()) {
+            wrapper.like(Order::getOrderNo, orderNo.trim());
+        }
+        if (startTime != null) {
+            wrapper.ge(Order::getCreateTime, startTime);
+        }
+        if (endTime != null) {
+            wrapper.le(Order::getCreateTime, endTime);
+        }
+        wrapper.orderByDesc(Order::getCreateTime);
+        
+        List<Order> orders = orderService.list(wrapper);
         return Result.success(orders);
     }
 

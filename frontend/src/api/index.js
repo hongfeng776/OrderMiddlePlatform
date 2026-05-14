@@ -116,11 +116,11 @@ export const orderApi = {
             method: 'post'
         })
     },
-    adminListOrders(orderStatus, startTime, endTime) {
+    adminListOrders(orderStatus, startTime, endTime, userId, orderNo) {
         return request({
             url: '/order/admin/list',
             method: 'get',
-            params: { orderStatus, startTime, endTime }
+            params: { orderStatus, startTime, endTime, userId, orderNo }
         })
     },
     batchShip(orderNos, remark, operatorId, operatorName) {
