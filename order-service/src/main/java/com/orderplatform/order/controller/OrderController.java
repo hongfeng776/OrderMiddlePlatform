@@ -2,19 +2,32 @@ package com.orderplatform.order.controller;
 
 import com.orderplatform.common.annotation.Idempotent;
 import com.orderplatform.common.result.Result;
+import com.orderplatform.order.dto.BatchOperationDTO;
 import com.orderplatform.order.dto.CreateOrderDTO;
+import com.orderplatform.order.dto.OrderExportDTO;
+import com.orderplatform.order.entity.BatchOperationDetail;
+import com.orderplatform.order.entity.BatchOperationLog;
 import com.orderplatform.order.entity.Notification;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderStatusLog;
+import com.orderplatform.order.service.BatchOperationService;
 import com.orderplatform.order.service.NotificationService;
+import com.orderplatform.order.service.OrderExportService;
 import com.orderplatform.order.service.OrderService;
 import com.orderplatform.order.service.OrderStatusLogService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +46,12 @@ public class OrderController {
 
     @Autowired
     private NotificationService notificationService;
+
+    @Autowired
+    private BatchOperationService batchOperationService;
+
+    @Autowired
+    private OrderExportService orderExportService;
 
     @PostMapping("/create")
     @Idempotent(expireTime = 1, message = "订单正在处理中，请勿重复提交")
@@ -138,5 +157,60 @@ public class OrderController {
     public Result<Boolean> markAllAsRead(@PathVariable Long userId) {
         boolean result = notificationService.markAllAsRead(userId);
         return Result.success(result);
+    }
+
+    @GetMapping("/admin/list")
+    public Result<List<Order>> adminListOrders(
+            @RequestParam(required = false) Integer orderStatus,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
+        List<Order> orders = orderService.list();
+        return Result.success(orders);
+    }
+
+    @PostMapping("/admin/batch-ship")
+    public Result<Map<String, Object>> batchShip(@RequestBody BatchOperationDTO dto) {
+        Map<String, Object> result = batchOperationService.batchShip(dto);
+        return Result.success(result);
+    }
+
+    @PostMapping("/admin/batch-cancel")
+    public Result<Map<String, Object>> batchCancel(@RequestBody BatchOperationDTO dto) {
+        Map<String, Object> result = batchOperationService.batchCancel(dto);
+        return Result.success(result);
+    }
+
+    @GetMapping("/admin/export")
+    public ResponseEntity<byte[]> exportOrders(
+            @RequestParam(required = false) Integer orderStatus,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
+            @RequestParam(required = false) Long userId) throws IOException {
+        OrderExportDTO dto = new OrderExportDTO();
+        dto.setOrderStatus(orderStatus);
+        dto.setStartTime(startTime);
+        dto.setEndTime(endTime);
+        dto.setUserId(userId);
+        
+        byte[] data = orderExportService.exportOrders(dto);
+        String fileName = "orders_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".xlsx";
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", new String(fileName.getBytes("UTF-8"), "ISO-8859-1")));
+        
+        return ResponseEntity.ok().headers(headers).body(data);
+    }
+
+    @GetMapping("/admin/batch-logs")
+    public Result<List<BatchOperationLog>> getBatchLogs(@RequestParam(required = false) String operationType) {
+        List<BatchOperationLog> logs = batchOperationService.getBatchLogs(operationType);
+        return Result.success(logs);
+    }
+
+    @GetMapping("/admin/batch-details/{batchNo}")
+    public Result<List<BatchOperationDetail>> getBatchDetails(@PathVariable String batchNo) {
+        List<BatchOperationDetail> details = batchOperationService.getBatchDetails(batchNo);
+        return Result.success(details);
     }
 }

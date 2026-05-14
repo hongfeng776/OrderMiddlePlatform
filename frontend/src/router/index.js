@@ -84,6 +84,12 @@ const routes = [
     name: 'RefundStatistics',
     component: () => import('@/views/RefundStatistics.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/order-management',
+    name: 'OrderManagement',
+    component: () => import('@/views/OrderManagement.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

@@ -111,11 +111,53 @@ export const orderApi = {
     })
   },
   markAllAsRead(userId) {
-    return request({
-      url: `/order/notifications/mark-all-read/${userId}`,
-      method: 'post'
-    })
-  }
+        return request({
+            url: `/order/notifications/mark-all-read/${userId}`,
+            method: 'post'
+        })
+    },
+    adminListOrders(orderStatus, startTime, endTime) {
+        return request({
+            url: '/order/admin/list',
+            method: 'get',
+            params: { orderStatus, startTime, endTime }
+        })
+    },
+    batchShip(orderNos, remark, operatorId, operatorName) {
+        return request({
+            url: '/order/admin/batch-ship',
+            method: 'post',
+            data: { orderNos, remark, operatorId, operatorName }
+        })
+    },
+    batchCancel(orderNos, remark, operatorId, operatorName) {
+        return request({
+            url: '/order/admin/batch-cancel',
+            method: 'post',
+            data: { orderNos, remark, operatorId, operatorName }
+        })
+    },
+    exportOrders(orderStatus, startTime, endTime, userId) {
+        return request({
+            url: '/order/admin/export',
+            method: 'get',
+            params: { orderStatus, startTime, endTime, userId },
+            responseType: 'blob'
+        })
+    },
+    getBatchLogs(operationType) {
+        return request({
+            url: '/order/admin/batch-logs',
+            method: 'get',
+            params: { operationType }
+        })
+    },
+    getBatchDetails(batchNo) {
+        return request({
+            url: `/order/admin/batch-details/${batchNo}`,
+            method: 'get'
+        })
+    }
 }
 
 export const paymentApi = {
