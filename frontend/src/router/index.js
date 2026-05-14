@@ -72,6 +72,18 @@ const routes = [
     name: 'CallbackLogs',
     component: () => import('@/views/CallbackLogs.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/system-config',
+    name: 'SystemConfig',
+    component: () => import('@/views/SystemConfig.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/refund-statistics',
+    name: 'RefundStatistics',
+    component: () => import('@/views/RefundStatistics.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

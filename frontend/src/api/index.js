@@ -219,3 +219,79 @@ export const callbackApi = {
     })
   }
 }
+
+export const refundApi = {
+  apply(data) {
+    return request({
+      url: '/payment/refund/apply',
+      method: 'post',
+      data
+    })
+  },
+  getProgress(refundNo, userId) {
+    return request({
+      url: `/payment/refund/progress/${refundNo}?userId=${userId}`,
+      method: 'get'
+    })
+  },
+  audit(data) {
+    return request({
+      url: '/payment/refund/audit',
+      method: 'post',
+      data
+    })
+  },
+  getUserRefunds(userId) {
+    return request({
+      url: `/payment/refund/user/${userId}`,
+      method: 'get'
+    })
+  },
+  getPendingAudit() {
+    return request({
+      url: '/payment/refund/pending-audit',
+      method: 'get'
+    })
+  },
+  getDetail(refundNo) {
+    return request({
+      url: `/payment/refund/${refundNo}`,
+      method: 'get'
+    })
+  },
+  export(userId) {
+    return request({
+      url: `/payment/refund/export?userId=${userId || ''}`,
+      method: 'get',
+      responseType: 'blob'
+    })
+  },
+  getStatistics(startTime, endTime) {
+    return request({
+      url: `/payment/refund/statistics/reason?startTime=${startTime || ''}&endTime=${endTime || ''}`,
+      method: 'get'
+    })
+  },
+  processTimeout() {
+    return request({
+      url: '/payment/refund/process-timeout',
+      method: 'post'
+    })
+  }
+}
+
+export const configApi = {
+  getList() {
+    return request({
+      url: '/payment/config/list',
+      method: 'get'
+    })
+  },
+  update(data) {
+    return request({
+      url: '/payment/config/update',
+      method: 'post',
+      data
+    })
+  }
+}

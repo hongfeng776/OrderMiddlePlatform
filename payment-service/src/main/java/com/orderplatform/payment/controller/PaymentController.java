@@ -9,12 +9,18 @@ import com.orderplatform.payment.service.CallbackLogService;
 import com.orderplatform.payment.service.MockPaymentGatewayService;
 import com.orderplatform.payment.service.PaymentService;
 import com.orderplatform.payment.service.RefundService;
+import com.orderplatform.payment.service.SystemConfigService;
 import com.orderplatform.payment.vo.RefundProgressVO;
+import com.orderplatform.payment.vo.RefundReasonStatVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -34,6 +40,12 @@ public class PaymentController {
 
     @Autowired
     private CallbackLogService callbackLogService;
+
+    @Autowired
+    private SystemConfigService systemConfigService;
+
+    @Autowired
+    private com.orderplatform.payment.task.RefundTimeoutTask refundTimeoutTask;
 
     @PostMapping("/create")
     public Result<String> createPayment(@RequestBody Map<String, Object> params) {
@@ -154,5 +166,39 @@ public class PaymentController {
         Map<String, Object> result = mockPaymentGatewayService.processRefund(refundNo, false);
         refundService.handleRefundCallback(result);
         return Result.success(result);
+    }
+
+    @GetMapping("/refund/export")
+    public void exportRefundList(@RequestParam(required = false) Long userId, HttpServletResponse response) throws IOException {
+        refundService.exportRefundList(userId, response);
+    }
+
+    @GetMapping("/refund/statistics/reason")
+    public Result<List<RefundReasonStatVO>> getRefundReasonStatistics(
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime) {
+        List<RefundReasonStatVO> statistics = refundService.getRefundReasonStatistics(startTime, endTime);
+        return Result.success(statistics);
+    }
+
+    @GetMapping("/config/list")
+    public Result<Map<String, String>> getConfigList() {
+        Map<String, String> configMap = systemConfigService.getAllConfigMap();
+        return Result.success(configMap);
+    }
+
+    @PostMapping("/config/update")
+    public Result<Void> updateConfig(@RequestBody Map<String, String> params) {
+        String configKey = params.get("configKey");
+        String configValue = params.get("configValue");
+        String configDesc = params.get("configDesc");
+        systemConfigService.updateConfigValue(configKey, configValue, configDesc);
+        return Result.success();
+    }
+
+    @PostMapping("/refund/process-timeout")
+    public Result<Void> processTimeoutRefund() {
+        refundTimeoutTask.processTimeoutRefund();
+        return Result.success();
     }
 }
