@@ -365,6 +365,13 @@ export const scheduleJobApi = {
       method: 'get',
       params: { jobHandler, limit }
     })
+  },
+  getJobStatistics(jobHandler) {
+    return request({
+      url: '/schedule/job/statistics',
+      method: 'get',
+      params: { jobHandler }
+    })
   }
 }
 
