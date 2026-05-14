@@ -13,6 +13,17 @@ request.interceptors.request.use(
     if (token) {
       config.headers['Authorization'] = token
     }
+    const user = localStorage.getItem('user')
+    if (user) {
+      try {
+        const userInfo = JSON.parse(user)
+        config.headers['X-User-Id'] = userInfo.userId
+        config.headers['X-User-Role'] = userInfo.role
+        config.headers['X-User-Permissions'] = userInfo.permissions
+      } catch (e) {
+        console.error('解析用户信息失败', e)
+      }
+    }
     return config
   },
   error => {

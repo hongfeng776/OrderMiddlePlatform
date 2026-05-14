@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { ElMessage } from 'element-plus'
 import store from '@/store'
 
 const routes = [
@@ -101,6 +102,9 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   if (to.meta.requiresAuth && !store.state.user.token) {
     next('/login')
+  } else if (to.meta.requiresAdmin && store.state.user.role !== 'ADMIN') {
+    ElMessage.error('需要管理员权限')
+    next('/')
   } else {
     next()
   }

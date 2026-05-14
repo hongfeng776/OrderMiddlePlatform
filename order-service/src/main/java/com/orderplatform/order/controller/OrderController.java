@@ -1,6 +1,8 @@
 package com.orderplatform.order.controller;
 
 import com.orderplatform.common.annotation.Idempotent;
+import com.orderplatform.common.annotation.RequiresPermission;
+import com.orderplatform.common.enums.PermissionConstants;
 import com.orderplatform.common.result.Result;
 import com.orderplatform.order.dto.BatchOperationDTO;
 import com.orderplatform.order.dto.CreateOrderDTO;
@@ -11,11 +13,14 @@ import com.orderplatform.order.entity.Notification;
 import com.orderplatform.order.entity.Order;
 import com.orderplatform.order.entity.OrderStatusLog;
 import com.orderplatform.order.service.BatchOperationService;
+import com.orderplatform.order.service.MinIOService;
 import com.orderplatform.order.service.NotificationService;
 import com.orderplatform.order.service.OrderExportService;
 import com.orderplatform.order.service.OrderService;
 import com.orderplatform.order.service.OrderStatusLogService;
 import lombok.extern.slf4j.Slf4j;
+
+import java.io.InputStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpHeaders;
@@ -52,6 +57,9 @@ public class OrderController {
 
     @Autowired
     private OrderExportService orderExportService;
+
+    @Autowired
+    private MinIOService minIOService;
 
     @PostMapping("/create")
     @Idempotent(expireTime = 1, message = "订单正在处理中，请勿重复提交")
@@ -160,6 +168,7 @@ public class OrderController {
     }
 
     @GetMapping("/admin/list")
+    @RequiresPermission(PermissionConstants.ORDER_ADMIN)
     public Result<List<Order>> adminListOrders(
             @RequestParam(required = false) Integer orderStatus,
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
@@ -191,31 +200,34 @@ public class OrderController {
     }
 
     @PostMapping("/admin/batch-ship")
+    @RequiresPermission(PermissionConstants.BATCH_SHIP)
     public Result<Map<String, Object>> batchShip(@RequestBody BatchOperationDTO dto) {
         Map<String, Object> result = batchOperationService.batchShip(dto);
         return Result.success(result);
     }
 
     @PostMapping("/admin/batch-cancel")
+    @RequiresPermission(PermissionConstants.BATCH_CANCEL)
     public Result<Map<String, Object>> batchCancel(@RequestBody BatchOperationDTO dto) {
         Map<String, Object> result = batchOperationService.batchCancel(dto);
         return Result.success(result);
     }
 
-    @GetMapping("/admin/export")
-    public ResponseEntity<byte[]> exportOrders(
-            @RequestParam(required = false) Integer orderStatus,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime startTime,
-            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd HH:mm:ss") LocalDateTime endTime,
-            @RequestParam(required = false) Long userId) throws IOException {
-        OrderExportDTO dto = new OrderExportDTO();
-        dto.setOrderStatus(orderStatus);
-        dto.setStartTime(startTime);
-        dto.setEndTime(endTime);
-        dto.setUserId(userId);
+    @PostMapping("/admin/export")
+    @RequiresPermission(PermissionConstants.ORDER_EXPORT)
+    public Result<Map<String, Object>> exportOrders(@RequestBody OrderExportDTO dto) throws IOException {
+        Map<String, Object> result = orderExportService.exportOrdersToMinIO(dto);
+        return Result.success(result);
+    }
+
+    @GetMapping("/admin/export/download")
+    @RequiresPermission(PermissionConstants.ORDER_EXPORT)
+    public ResponseEntity<byte[]> downloadExport(
+            @RequestParam String objectName) throws IOException {
+        InputStream inputStream = minIOService.downloadFile(objectName);
+        byte[] data = inputStream.readAllBytes();
         
-        byte[] data = orderExportService.exportOrders(dto);
-        String fileName = "orders_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")) + ".xlsx";
+        String fileName = objectName.substring(objectName.lastIndexOf('/') + 1);
         
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
@@ -225,12 +237,14 @@ public class OrderController {
     }
 
     @GetMapping("/admin/batch-logs")
+    @RequiresPermission(PermissionConstants.ORDER_ADMIN)
     public Result<List<BatchOperationLog>> getBatchLogs(@RequestParam(required = false) String operationType) {
         List<BatchOperationLog> logs = batchOperationService.getBatchLogs(operationType);
         return Result.success(logs);
     }
 
     @GetMapping("/admin/batch-details/{batchNo}")
+    @RequiresPermission(PermissionConstants.ORDER_ADMIN)
     public Result<List<BatchOperationDetail>> getBatchDetails(@PathVariable String batchNo) {
         List<BatchOperationDetail> details = batchOperationService.getBatchDetails(batchNo);
         return Result.success(details);

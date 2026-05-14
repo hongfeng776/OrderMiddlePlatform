@@ -11,6 +11,8 @@ CREATE TABLE IF NOT EXISTS `user` (
     `email` VARCHAR(100) COMMENT '邮箱',
     `avatar` VARCHAR(255) COMMENT '头像',
     `status` TINYINT DEFAULT 1 COMMENT '状态：0-禁用，1-启用',
+    `role` VARCHAR(50) DEFAULT 'USER' COMMENT '角色：USER-普通用户，ADMIN-管理员',
+    `permissions` TEXT COMMENT '权限列表，逗号分隔',
     `create_time` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     `update_time` DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     PRIMARY KEY (`id`),
@@ -125,9 +127,9 @@ CREATE TABLE IF NOT EXISTS `notification` (
     KEY `idx_create_time` (`create_time`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='通知表';
 
-INSERT INTO `user` (`username`, `password`, `nickname`, `phone`) VALUES
-('admin', '123456', '管理员', '13800138000'),
-('test', '123456', '测试用户', '13800138001');
+INSERT INTO `user` (`username`, `password`, `nickname`, `phone`, `role`, `permissions`) VALUES
+('admin', '123456', '管理员', '138******00', 'ADMIN', 'order:batch:ship,order:batch:cancel,order:export,order:admin'),
+('test', '123456', '测试用户', '138******01', 'USER', '');
 
 CREATE TABLE IF NOT EXISTS `refund_record` (
     `id` BIGINT NOT NULL AUTO_INCREMENT COMMENT '退款记录ID',

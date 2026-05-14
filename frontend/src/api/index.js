@@ -137,11 +137,18 @@ export const orderApi = {
             data: { orderNos, remark, operatorId, operatorName }
         })
     },
-    exportOrders(orderStatus, startTime, endTime, userId) {
+    exportOrders(data) {
         return request({
             url: '/order/admin/export',
+            method: 'post',
+            data
+        })
+    },
+    downloadExport(objectName) {
+        return request({
+            url: '/order/admin/export/download',
             method: 'get',
-            params: { orderStatus, startTime, endTime, userId },
+            params: { objectName },
             responseType: 'blob'
         })
     },

@@ -49,3 +49,10 @@ mybatis-plus:
 
 order:
   timeout-minutes: 15
+
+minio:
+  endpoint: http://localhost:9000
+  accessKey: minioadmin
+  secretKey: minioadmin
+  bucketName: order-exports
+  downloadExpiry: 7200

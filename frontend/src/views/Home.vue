@@ -16,6 +16,10 @@
               <el-icon><HomeFilled /></el-icon>
               <span>首页</span>
             </el-menu-item>
+            <el-menu-item v-if="isAdmin" index="/order-management">
+              <el-icon><Setting /></el-icon>
+              <span>订单管理</span>
+            </el-menu-item>
             <el-menu-item index="/orders">
               <el-icon><List /></el-icon>
               <span>订单列表</span>
@@ -134,11 +138,11 @@ import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { orderApi, inventoryApi } from '@/api'
-import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document } from '@element-plus/icons-vue'
+import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting } from '@element-plus/icons-vue'
 
 export default {
   name: 'Home',
-  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document },
+  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -153,6 +157,7 @@ export default {
     
     const userInfo = computed(() => store.state.user)
     const activeMenu = computed(() => route.path)
+    const isAdmin = computed(() => store.getters.isAdmin)
     
     const loadData = async () => {
       try {
@@ -187,6 +192,7 @@ export default {
     return {
       userInfo,
       activeMenu,
+      isAdmin,
       logout,
       ...toRefs(state)
     }

@@ -29,6 +29,8 @@ public class UserController {
         data.put("userId", user.getId());
         data.put("username", user.getUsername());
         data.put("nickname", user.getNickname());
+        data.put("role", user.getRole());
+        data.put("permissions", user.getPermissions());
         data.put("token", "mock_token_" + user.getId());
         
         return Result.success(data);

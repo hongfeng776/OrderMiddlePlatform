@@ -1,41 +1,59 @@
 import { createStore } from 'vuex'
 
+const getUserFromStorage = () => {
+  const userStr = localStorage.getItem('user')
+  if (userStr) {
+    try {
+      return JSON.parse(userStr)
+    } catch (e) {
+      console.error('解析用户信息失败', e)
+    }
+  }
+  return {
+    token: '',
+    userId: '',
+    username: '',
+    nickname: '',
+    role: '',
+    permissions: ''
+  }
+}
+
 export default createStore({
   state: {
-    user: {
-      token: localStorage.getItem('token') || '',
-      userId: localStorage.getItem('userId') || '',
-      username: localStorage.getItem('username') || '',
-      nickname: localStorage.getItem('nickname') || ''
-    },
+    user: getUserFromStorage(),
     notification: {
       unreadCount: 0
     }
   },
   getters: {
     isLoggedIn: state => !!state.user.token,
-    unreadCount: state => state.notification.unreadCount
+    unreadCount: state => state.notification.unreadCount,
+    isAdmin: state => state.user.role === 'ADMIN'
   },
   mutations: {
     SET_USER(state, userData) {
-      state.user = userData
-      localStorage.setItem('token', userData.token)
-      localStorage.setItem('userId', userData.userId)
-      localStorage.setItem('username', userData.username)
-      localStorage.setItem('nickname', userData.nickname)
+      state.user = {
+        token: userData.token,
+        userId: userData.userId,
+        username: userData.username,
+        nickname: userData.nickname,
+        role: userData.role || '',
+        permissions: userData.permissions || ''
+      }
+      localStorage.setItem('user', JSON.stringify(state.user))
     },
     LOGOUT(state) {
       state.user = {
         token: '',
         userId: '',
         username: '',
-        nickname: ''
+        nickname: '',
+        role: '',
+        permissions: ''
       }
       state.notification.unreadCount = 0
-      localStorage.removeItem('token')
-      localStorage.removeItem('userId')
-      localStorage.removeItem('username')
-      localStorage.removeItem('nickname')
+      localStorage.removeItem('user')
     },
     SET_UNREAD_COUNT(state, count) {
       state.notification.unreadCount = count
