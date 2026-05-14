@@ -78,6 +78,14 @@ public class OrderController {
         return Result.success(result);
     }
 
+    @PostMapping("/refund-success/{orderNo}")
+    public Result<Boolean> refundSuccess(@PathVariable String orderNo,
+                                         @RequestBody(required = false) Map<String, String> body) {
+        String remark = body != null ? body.get("remark") : null;
+        boolean result = orderService.refundSuccess(orderNo, remark);
+        return Result.success(result);
+    }
+
     @PostMapping("/complete/{orderNo}")
     public Result<Boolean> complete(@PathVariable String orderNo,
                                      @RequestBody(required = false) Map<String, String> body) {

@@ -129,6 +129,27 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
     }
 
     @Transactional(rollbackFor = Exception.class)
+    public boolean refundSuccess(String orderNo, String remark) {
+        Order order = getOrderByNo(orderNo);
+        if (order == null) {
+            throw new BusinessException("订单不存在");
+        }
+        Integer previousStatus = order.getOrderStatus();
+        
+        order.setOrderStatus(OrderStatusEnum.REFUNDED.getCode());
+        order.setUpdateTime(LocalDateTime.now());
+        updateById(order);
+        
+        orderMessageProducer.sendOrderStatusChange(orderNo, order.getUserId(), previousStatus,
+            OrderStatusEnum.REFUNDED.getCode(), "退款成功", remark != null ? remark : "订单退款完成");
+        orderMessageProducer.sendNotification(order.getUserId(), orderNo, "退款成功",
+            remark != null ? remark : "您的订单已退款完成", 1);
+        
+        log.info("退款成功: orderNo={}", orderNo);
+        return true;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
     public boolean paySuccess(String orderNo) {
         return paySuccess(orderNo, null);
     }
