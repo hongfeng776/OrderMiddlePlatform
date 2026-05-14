@@ -73,11 +73,24 @@ export const inventoryLockApi = {
     })
   },
   releaseExpired() {
-    return request({
-      url: '/inventory-lock/release-expired',
-      method: 'post'
-    })
-  }
+        return request({
+            url: '/inventory-lock/release-expired',
+            method: 'post'
+        })
+    },
+    forceRelease(id, data) {
+        return request({
+            url: `/inventory-lock/force-release/${id}`,
+            method: 'post',
+            data
+        })
+    },
+    getAbnormalLocks() {
+        return request({
+            url: '/inventory-lock/abnormal',
+            method: 'get'
+        })
+    }
 }
 
 export const orderApi = {

@@ -79,4 +79,19 @@ public class InventoryLockRecordController {
         int count = inventoryLockRecordService.releaseExpiredLocks();
         return Result.success(count);
     }
+
+    @PostMapping("/force-release/{id}")
+    public Result<Boolean> forceReleaseLock(@PathVariable Long id, @RequestBody Map<String, Object> params) {
+        Long operatorId = params.containsKey("operatorId") ? Long.valueOf(params.get("operatorId").toString()) : null;
+        String remark = (String) params.get("remark");
+
+        boolean result = inventoryLockRecordService.forceReleaseLock(id, operatorId, remark);
+        return Result.success(result);
+    }
+
+    @GetMapping("/abnormal")
+    public Result<List<InventoryLockRecord>> getAbnormalLocks() {
+        List<InventoryLockRecord> list = inventoryLockRecordService.findAbnormalLocks();
+        return Result.success(list);
+    }
 }

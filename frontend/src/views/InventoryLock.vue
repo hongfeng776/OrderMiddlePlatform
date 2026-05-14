@@ -39,6 +39,12 @@
           <div class="page-header">
             <h2>库存锁定记录</h2>
             <div class="header-actions">
+              <el-badge :value="abnormalCount" :hidden="abnormalCount === 0" class="abnormal-badge">
+                <el-button type="danger" @click="loadAbnormalLocks" :loading="loadingAbnormal">
+                  <el-icon><Warning /></el-icon>
+                  异常锁定
+                </el-button>
+              </el-badge>
               <el-button type="warning" @click="releaseExpired" :loading="releasingExpired">
                 <el-icon><Timer /></el-icon>
                 释放超时锁定
@@ -72,9 +78,50 @@
             </el-form>
           </el-card>
           
+          <el-card v-if="showAbnormal && abnormalLocks.length > 0" class="abnormal-card">
+            <template #header>
+              <div class="abnormal-header">
+                <el-icon><Warning /></el-icon>
+                <span>异常锁定记录（超期未处理）</span>
+              </div>
+            </template>
+            <el-table :data="abnormalLocks" stripe size="small">
+              <el-table-column prop="lockNo" label="锁定单号" min-width="180" />
+              <el-table-column prop="productId" label="商品ID" width="100" />
+              <el-table-column prop="productName" label="商品名称" min-width="150" />
+              <el-table-column prop="orderNo" label="订单号" min-width="180" />
+              <el-table-column prop="lockQuantity" label="锁定数量" width="100" />
+              <el-table-column prop="lockExpireTime" label="过期时间" width="180">
+                <template #default="{ row }">
+                  <span class="expired">{{ formatTime(row.lockExpireTime) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="操作" width="180" fixed="right">
+                <template #default="{ row }">
+                  <el-button 
+                    type="danger" 
+                    size="small" 
+                    @click="openForceReleaseDialog(row)"
+                  >
+                    <el-icon><Unlock /></el-icon>
+                    强制解锁
+                  </el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-card>
+          
           <el-card class="table-card">
             <el-table :data="lockRecords" stripe v-loading="loading">
-              <el-table-column prop="lockNo" label="锁定单号" min-width="180" />
+              <el-table-column prop="lockNo" label="锁定单号" min-width="180">
+                <template #default="{ row }">
+                  <span v-if="isAbnormalLock(row)" class="abnormal-flag">
+                    <el-icon><Warning /></el-icon>
+                    {{ row.lockNo }}
+                  </span>
+                  <span v-else>{{ row.lockNo }}</span>
+                </template>
+              </el-table-column>
               <el-table-column prop="productId" label="商品ID" width="100" />
               <el-table-column prop="productName" label="商品名称" min-width="150" />
               <el-table-column prop="orderNo" label="订单号" min-width="180" />
@@ -82,7 +129,7 @@
               <el-table-column prop="lockQuantity" label="锁定数量" width="100" />
               <el-table-column prop="lockStatus" label="锁定状态" width="120">
                 <template #default="{ row }">
-                  <el-tag :type="getLockStatusType(row.lockStatus)" size="small">
+                  <el-tag :type="getLockStatusType(row)" size="small">
                     {{ getLockStatusText(row.lockStatus) }}
                   </el-tag>
                 </template>
@@ -101,16 +148,25 @@
                   </span>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="150" fixed="right">
+              <el-table-column label="操作" width="180" fixed="right">
                 <template #default="{ row }">
-                  <el-button 
-                    v-if="row.lockStatus === 0" 
-                    type="danger" 
-                    size="small" 
-                    @click="openReleaseDialog(row)"
-                  >
-                    手动解锁
-                  </el-button>
+                  <template v-if="row.lockStatus === 0">
+                    <el-button 
+                      type="danger" 
+                      size="small" 
+                      @click="openReleaseDialog(row)"
+                    >
+                      手动解锁
+                    </el-button>
+                    <el-button 
+                      v-if="isAbnormalLock(row)"
+                      type="warning" 
+                      size="small" 
+                      @click="openForceReleaseDialog(row)"
+                    >
+                      强制解锁
+                    </el-button>
+                  </template>
                   <span v-else>-</span>
                 </template>
               </el-table-column>
@@ -165,6 +221,55 @@
         </el-button>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="forceReleaseDialogVisible"
+      title="强制解锁（异常锁定）"
+      width="500px"
+      :before-close="cancelForceRelease"
+    >
+      <el-alert
+        title="此操作将强制释放异常锁定的库存"
+        type="warning"
+        :closable="false"
+        show-icon
+        style="margin-bottom: 20px"
+      >
+        <template #default>
+          该锁定已超过正常处理时间，可能是订单流程异常导致。强制解锁后库存将被释放。
+        </template>
+      </el-alert>
+      <el-form :model="forceReleaseForm" label-width="80px">
+        <el-form-item label="锁定单号">
+          <span>{{ currentRecord?.lockNo }}</span>
+        </el-form-item>
+        <el-form-item label="商品名称">
+          <span>{{ currentRecord?.productName }}</span>
+        </el-form-item>
+        <el-form-item label="锁定数量">
+          <span>{{ currentRecord?.lockQuantity }}</span>
+        </el-form-item>
+        <el-form-item label="过期时间">
+          <span class="expired">{{ formatTime(currentRecord?.lockExpireTime) }}</span>
+        </el-form-item>
+        <el-form-item label="解锁备注">
+          <el-input
+            v-model="forceReleaseForm.remark"
+            type="textarea"
+            :rows="3"
+            placeholder="请输入解锁备注（必填）"
+            maxlength="200"
+            show-word-limit
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <el-button @click="cancelForceRelease">取消</el-button>
+        <el-button type="danger" @click="confirmForceRelease" :loading="forceReleasing">
+          确认强制解锁
+        </el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -174,11 +279,11 @@ import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { inventoryLockApi } from '@/api'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { HomeFilled, Setting, Box, Lock, Timer, Refresh } from '@element-plus/icons-vue'
+import { HomeFilled, Setting, Box, Lock, Timer, Refresh, Warning, Unlock } from '@element-plus/icons-vue'
 
 export default {
   name: 'InventoryLock',
-  components: { HomeFilled, Setting, Box, Lock, Timer, Refresh },
+  components: { HomeFilled, Setting, Box, Lock, Timer, Refresh, Warning, Unlock },
   setup() {
     const store = useStore()
     const router = useRouter()
@@ -187,9 +292,14 @@ export default {
     const state = reactive({
       loading: false,
       releasing: false,
+      forceReleasing: false,
       releasingExpired: false,
+      loadingAbnormal: false,
       lockRecords: [],
+      abnormalLocks: [],
+      showAbnormal: false,
       releaseDialogVisible: false,
+      forceReleaseDialogVisible: false,
       currentRecord: null,
       filterForm: {
         productId: route.query.productId || '',
@@ -197,6 +307,9 @@ export default {
         lockStatus: null
       },
       releaseForm: {
+        remark: ''
+      },
+      forceReleaseForm: {
         remark: ''
       },
       pagination: {
@@ -209,7 +322,15 @@ export default {
     const userInfo = computed(() => store.state.user)
     const activeMenu = computed(() => route.path)
     
-    const getLockStatusType = (status) => {
+    const abnormalCount = computed(() => {
+      return state.lockRecords.filter(record => isAbnormalLock(record)).length
+    })
+    
+    const getLockStatusType = (row) => {
+      const status = row.lockStatus
+      if (status === 0 && isAbnormalLock(row)) {
+        return 'danger'
+      }
       const types = { 0: 'warning', 1: 'success', 2: 'info' }
       return types[status] || 'info'
     }
@@ -227,6 +348,15 @@ export default {
     const isExpired = (expireTime) => {
       if (!expireTime) return false
       return new Date(expireTime) < new Date()
+    }
+    
+    const isAbnormalLock = (record) => {
+      if (!record || record.lockStatus !== 0) return false
+      if (!record.lockExpireTime) return false
+      const expireTime = new Date(record.lockExpireTime)
+      const now = new Date()
+      const diffMinutes = (now - expireTime) / (1000 * 60)
+      return diffMinutes > 30
     }
     
     const loadLockRecords = async () => {
@@ -249,11 +379,29 @@ export default {
       }
     }
     
+    const loadAbnormalLocks = async () => {
+      state.loadingAbnormal = true
+      try {
+        const res = await inventoryLockApi.getAbnormalLocks()
+        state.abnormalLocks = res.data || []
+        state.showAbnormal = true
+        if (state.abnormalLocks.length === 0) {
+          ElMessage.info('当前没有异常锁定记录')
+        }
+      } catch (error) {
+        ElMessage.error('加载异常锁定记录失败')
+        console.error('加载异常锁定记录失败:', error)
+      } finally {
+        state.loadingAbnormal = false
+      }
+    }
+    
     const resetFilter = () => {
       state.filterForm.productId = ''
       state.filterForm.orderNo = ''
       state.filterForm.lockStatus = null
       state.pagination.page = 1
+      state.showAbnormal = false
       loadLockRecords()
     }
     
@@ -289,6 +437,59 @@ export default {
       }
     }
     
+    const openForceReleaseDialog = (record) => {
+      state.currentRecord = record
+      state.forceReleaseForm.remark = ''
+      state.forceReleaseDialogVisible = true
+    }
+    
+    const cancelForceRelease = () => {
+      state.forceReleaseDialogVisible = false
+      state.currentRecord = null
+      state.forceReleaseForm.remark = ''
+    }
+    
+    const confirmForceRelease = async () => {
+      if (!state.currentRecord) return
+      if (!state.forceReleaseForm.remark || state.forceReleaseForm.remark.trim() === '') {
+        ElMessage.warning('请填写解锁备注')
+        return
+      }
+      
+      try {
+        await ElMessageBox.confirm(
+          '确定要强制解锁该异常锁定吗？此操作将直接释放库存并标记为异常处理。',
+          '强制解锁确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        )
+      } catch {
+        return
+      }
+      
+      state.forceReleasing = true
+      try {
+        await inventoryLockApi.forceRelease(state.currentRecord.id, {
+          operatorId: userInfo.value.userId,
+          remark: state.forceReleaseForm.remark
+        })
+        ElMessage.success('强制解锁成功')
+        cancelForceRelease()
+        loadLockRecords()
+        if (state.showAbnormal) {
+          loadAbnormalLocks()
+        }
+      } catch (error) {
+        ElMessage.error('强制解锁失败')
+        console.error('强制解锁失败:', error)
+      } finally {
+        state.forceReleasing = false
+      }
+    }
+    
     const releaseExpired = async () => {
       state.releasingExpired = true
       try {
@@ -315,15 +516,21 @@ export default {
     return {
       userInfo,
       activeMenu,
+      abnormalCount,
       getLockStatusType,
       getLockStatusText,
       formatTime,
       isExpired,
+      isAbnormalLock,
       loadLockRecords,
+      loadAbnormalLocks,
       resetFilter,
       openReleaseDialog,
       cancelRelease,
       confirmRelease,
+      openForceReleaseDialog,
+      cancelForceRelease,
+      confirmForceRelease,
       releaseExpired,
       logout,
       ...toRefs(state)
@@ -391,12 +598,37 @@ export default {
   gap: 10px;
 }
 
+.abnormal-badge {
+  margin-right: 10px;
+}
+
 .filter-card {
   margin-bottom: 20px;
 }
 
 .filter-form {
   margin: 0;
+}
+
+.abnormal-card {
+  margin-bottom: 20px;
+  border: 1px solid #f56c6c;
+}
+
+.abnormal-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f56c6c;
+  font-weight: bold;
+}
+
+.abnormal-flag {
+  color: #f56c6c;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  gap: 4px;
 }
 
 .table-card {

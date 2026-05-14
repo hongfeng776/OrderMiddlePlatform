@@ -30,8 +30,9 @@ mybatis-plus:
       id-type: auto
 
 inventory:
-  lock-expire-minutes: 15
+  lock-expire-minutes: 30
   warning-threshold: 10
+  enable-anti-oversell: true
 
 xxl:
   job:
