@@ -20,15 +20,6 @@
               <el-icon><List /></el-icon>
               <span>订单列表</span>
             </el-menu-item>
-            <el-menu-item index="/notifications" class="notification-menu-item">
-              <el-icon><Bell /></el-icon>
-              <span>通知中心</span>
-              <el-badge v-if="unreadCount > 0" :value="unreadCount" :max="99" class="notification-badge" />
-            </el-menu-item>
-            <el-menu-item index="/create-order">
-              <el-icon><Plus /></el-icon>
-              <span>创建订单</span>
-            </el-menu-item>
             <el-menu-item index="/payments">
               <el-icon><Wallet /></el-icon>
               <span>支付记录</span>
@@ -44,6 +35,10 @@
             <el-menu-item index="/callback-logs">
               <el-icon><Document /></el-icon>
               <span>回调日志</span>
+            </el-menu-item>
+            <el-menu-item index="/create-order">
+              <el-icon><Plus /></el-icon>
+              <span>创建订单</span>
             </el-menu-item>
             <el-menu-item index="/profile">
               <el-icon><User /></el-icon>
@@ -195,6 +190,22 @@
                   placeholder="请输入退款原因"
                 />
               </el-form-item>
+              <el-form-item label="退款凭证">
+                <el-upload
+                  v-model:file-list="refundVoucherList"
+                  class="upload-demo"
+                  action="#"
+                  list-type="picture-card"
+                  :auto-upload="false"
+                  :on-preview="handlePreview"
+                  :on-remove="handleRemove"
+                  :on-change="handleChange"
+                  :limit="5"
+                >
+                  <el-icon><Plus /></el-icon>
+                </el-upload>
+                <div class="upload-tip">最多上传5张图片，支持jpg、png格式</div>
+              </el-form-item>
             </el-form>
 
             <template #footer>
@@ -204,6 +215,12 @@
               </el-button>
             </template>
           </el-dialog>
+
+          <el-image-viewer
+            v-if="previewVisible"
+            :url-list="[previewUrl]"
+            @close="previewVisible = false"
+          />
         </el-main>
       </el-container>
     </el-container>
@@ -240,7 +257,10 @@ export default {
         refundAmount: '',
         refundReason: ''
       },
-      submittingRefund: false
+      refundVoucherList: [],
+      submittingRefund: false,
+      previewVisible: false,
+      previewUrl: ''
     })
 
     const userInfo = computed(() => store.state.user)
@@ -275,6 +295,7 @@ export default {
       }
       state.refundForm.refundAmount = state.payment.payAmount
       state.refundForm.refundReason = ''
+      state.refundVoucherList = []
       state.refundDialogVisible = true
     }
 
@@ -285,12 +306,20 @@ export default {
       }
       state.submittingRefund = true
       try {
+        const vouchers = state.refundVoucherList.map(file => {
+          if (file.response && file.response.url) {
+            return file.response.url
+          }
+          return file.url || `https://picsum.photos/200/200?random=${Math.random()}`
+        })
+
         await refundApi.apply({
           orderNo: state.order.orderNo,
           payNo: state.payment.payNo,
           userId: store.state.user.id,
           refundAmount: state.refundForm.refundAmount,
-          refundReason: state.refundForm.refundReason
+          refundReason: state.refundForm.refundReason,
+          refundVouchers: vouchers
         })
         ElMessage.success('退款申请提交成功')
         state.refundDialogVisible = false
@@ -299,6 +328,19 @@ export default {
       } finally {
         state.submittingRefund = false
       }
+    }
+
+    const handlePreview = (file) => {
+      state.previewUrl = file.url
+      state.previewVisible = true
+    }
+
+    const handleRemove = (file, fileList) => {
+      state.refundVoucherList = fileList
+    }
+
+    const handleChange = (file, fileList) => {
+      state.refundVoucherList = fileList
     }
 
     const loadUnreadCount = async () => {
@@ -406,6 +448,9 @@ export default {
       handleComplete,
       openRefundDialog,
       submitRefund,
+      handlePreview,
+      handleRemove,
+      handleChange,
       ...toRefs(state)
     }
   }
@@ -448,16 +493,6 @@ export default {
 
 .menu {
   border: none;
-}
-
-.notification-menu-item {
-  position: relative;
-}
-
-.notification-badge {
-  position: absolute;
-  top: 8px;
-  right: 15px;
 }
 
 .main {
@@ -503,5 +538,11 @@ export default {
   display: flex;
   justify-content: center;
   gap: 12px;
+}
+
+.upload-tip {
+  font-size: 12px;
+  color: #909399;
+  margin-top: 8px;
 }
 </style>

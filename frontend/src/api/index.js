@@ -166,6 +166,12 @@ export const refundApi = {
       data
     })
   },
+  getProgress(refundNo, userId) {
+    return request({
+      url: `/payment/refund/progress/${refundNo}?userId=${userId}`,
+      method: 'get'
+    })
+  },
   audit(data) {
     return request({
       url: '/payment/refund/audit',

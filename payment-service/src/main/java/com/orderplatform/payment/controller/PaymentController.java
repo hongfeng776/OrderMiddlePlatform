@@ -1,6 +1,7 @@
 package com.orderplatform.payment.controller;
 
 import com.orderplatform.common.result.Result;
+import com.orderplatform.payment.dto.RefundApplyDTO;
 import com.orderplatform.payment.entity.CallbackLog;
 import com.orderplatform.payment.entity.PaymentRecord;
 import com.orderplatform.payment.entity.RefundRecord;
@@ -8,6 +9,7 @@ import com.orderplatform.payment.service.CallbackLogService;
 import com.orderplatform.payment.service.MockPaymentGatewayService;
 import com.orderplatform.payment.service.PaymentService;
 import com.orderplatform.payment.service.RefundService;
+import com.orderplatform.payment.vo.RefundProgressVO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -77,15 +79,15 @@ public class PaymentController {
     }
 
     @PostMapping("/refund/apply")
-    public Result<String> applyRefund(@RequestBody Map<String, Object> params) {
-        String orderNo = (String) params.get("orderNo");
-        String payNo = (String) params.get("payNo");
-        Long userId = Long.valueOf(params.get("userId").toString());
-        BigDecimal refundAmount = new BigDecimal(params.get("refundAmount").toString());
-        String refundReason = (String) params.get("refundReason");
-        
-        String refundNo = refundService.applyRefund(orderNo, payNo, userId, refundAmount, refundReason);
+    public Result<String> applyRefund(@RequestBody RefundApplyDTO dto) {
+        String refundNo = refundService.applyRefund(dto);
         return Result.success(refundNo);
+    }
+
+    @GetMapping("/refund/progress/{refundNo}")
+    public Result<RefundProgressVO> getRefundProgress(@PathVariable String refundNo, @RequestParam Long userId) {
+        RefundProgressVO progress = refundService.getRefundProgress(refundNo, userId);
+        return Result.success(progress);
     }
 
     @PostMapping("/refund/audit")
