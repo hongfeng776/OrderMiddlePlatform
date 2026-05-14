@@ -2,6 +2,7 @@ package com.orderplatform.order.feign;
 
 import com.orderplatform.common.result.Result;
 import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
@@ -27,4 +28,13 @@ public interface InventoryFeignClient {
 
     @PostMapping("/inventory/rollback-order/{orderNo}")
     Result<Boolean> rollbackOrderStock(@PathVariable("orderNo") String orderNo);
+
+    @PostMapping("/inventory-lock/create")
+    Result<Map<String, Object>> createLockRecord(@RequestBody Map<String, Object> params);
+
+    @PostMapping("/inventory-lock/confirm/{orderNo}")
+    Result<Boolean> confirmLockByOrderNo(@PathVariable("orderNo") String orderNo);
+
+    @PostMapping("/inventory-lock/release-order/{orderNo}")
+    Result<Boolean> releaseLockByOrderNo(@PathVariable("orderNo") String orderNo, @RequestBody Map<String, Object> params);
 }

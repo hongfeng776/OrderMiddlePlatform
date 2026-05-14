@@ -31,6 +31,55 @@ export const inventoryApi = {
   }
 }
 
+export const inventoryLockApi = {
+  list(page, size, productId, orderNo, lockStatus) {
+    return request({
+      url: '/inventory-lock/list',
+      method: 'get',
+      params: { page, size, productId, orderNo, lockStatus }
+    })
+  },
+  getById(id) {
+    return request({
+      url: `/inventory-lock/${id}`,
+      method: 'get'
+    })
+  },
+  create(data) {
+    return request({
+      url: '/inventory-lock/create',
+      method: 'post',
+      data
+    })
+  },
+  confirm(orderNo) {
+    return request({
+      url: `/inventory-lock/confirm/${orderNo}`,
+      method: 'post'
+    })
+  },
+  releaseByOrderNo(orderNo, data) {
+    return request({
+      url: `/inventory-lock/release-order/${orderNo}`,
+      method: 'post',
+      data
+    })
+  },
+  manualRelease(id, data) {
+    return request({
+      url: `/inventory-lock/manual-release/${id}`,
+      method: 'post',
+      data
+    })
+  },
+  releaseExpired() {
+    return request({
+      url: '/inventory-lock/release-expired',
+      method: 'post'
+    })
+  }
+}
+
 export const orderApi = {
   create(data) {
     return request({

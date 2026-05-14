@@ -97,6 +97,18 @@ const routes = [
     name: 'ScheduleJob',
     component: () => import('@/views/ScheduleJob.vue'),
     meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/inventory',
+    name: 'Inventory',
+    component: () => import('@/views/Inventory.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
+    path: '/inventory-lock',
+    name: 'InventoryLock',
+    component: () => import('@/views/InventoryLock.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
   }
 ]
 

@@ -85,8 +85,11 @@ public class OrderTimeoutTask {
         try {
             log.info("开始取消超时订单: orderNo={}, createTime={}", order.getOrderNo(), order.getCreateTime());
             
-            inventoryFeignClient.rollbackOrderStock(order.getOrderNo());
-            log.info("订单库存回滚完成: orderNo={}", order.getOrderNo());
+            Map<String, Object> releaseParams = new HashMap<>();
+            releaseParams.put("releaseType", 3);
+            releaseParams.put("remark", "订单超时自动取消，释放库存");
+            inventoryFeignClient.releaseLockByOrderNo(order.getOrderNo(), releaseParams);
+            log.info("订单库存锁定释放完成: orderNo={}", order.getOrderNo());
             
             order.setOrderStatus(5);
             order.setCancelTime(LocalDateTime.now());

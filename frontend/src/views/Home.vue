@@ -20,6 +20,14 @@
               <el-icon><Setting /></el-icon>
               <span>订单管理</span>
             </el-menu-item>
+            <el-menu-item v-if="isAdmin" index="/inventory">
+              <el-icon><Box /></el-icon>
+              <span>库存管理</span>
+            </el-menu-item>
+            <el-menu-item v-if="isAdmin" index="/inventory-lock">
+              <el-icon><Lock /></el-icon>
+              <span>库存锁定</span>
+            </el-menu-item>
             <el-menu-item index="/orders">
               <el-icon><List /></el-icon>
               <span>订单列表</span>
@@ -138,11 +146,11 @@ import { computed, onMounted, reactive, toRefs, watch } from 'vue'
 import { useStore } from 'vuex'
 import { useRouter, useRoute } from 'vue-router'
 import { orderApi, inventoryApi } from '@/api'
-import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting } from '@element-plus/icons-vue'
+import { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting, Lock } from '@element-plus/icons-vue'
 
 export default {
   name: 'Home',
-  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting },
+  components: { HomeFilled, List, Plus, User, ShoppingCart, Box, Clock, CircleCheck, Wallet, Refund, Check, Document, Setting, Lock },
   setup() {
     const store = useStore()
     const router = useRouter()

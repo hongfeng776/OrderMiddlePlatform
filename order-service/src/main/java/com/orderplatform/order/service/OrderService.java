@@ -46,23 +46,27 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         
         BigDecimal totalAmount = BigDecimal.ZERO;
         List<OrderItem> orderItems = new ArrayList<>();
-        List<Map<String, Object>> lockedStocks = new ArrayList<>();
+        List<Long> createdLockRecordIds = new ArrayList<>();
         
         try {
             for (CreateOrderDTO.OrderItemDTO itemDTO : dto.getItems()) {
                 BigDecimal itemTotal = itemDTO.getProductPrice().multiply(new BigDecimal(itemDTO.getBuyCount()));
                 totalAmount = totalAmount.add(itemTotal);
                 
-                Map<String, Object> preDeductParams = new HashMap<>();
-                preDeductParams.put("productId", itemDTO.getProductId());
-                preDeductParams.put("count", itemDTO.getBuyCount());
-                preDeductParams.put("orderNo", orderNo);
+                Map<String, Object> lockParams = new HashMap<>();
+                lockParams.put("productId", itemDTO.getProductId());
+                lockParams.put("quantity", itemDTO.getBuyCount());
+                lockParams.put("orderNo", orderNo);
+                lockParams.put("userId", dto.getUserId());
+                lockParams.put("lockType", 1);
                 
-                Boolean preDeductResult = inventoryFeignClient.preDeductStock(preDeductParams).getData();
-                if (!Boolean.TRUE.equals(preDeductResult)) {
-                    throw new BusinessException("商品 " + itemDTO.getProductName() + " 库存不足");
+                Map<String, Object> lockResult = inventoryFeignClient.createLockRecord(lockParams).getData();
+                if (lockResult == null) {
+                    throw new BusinessException("商品 " + itemDTO.getProductName() + " 库存锁定失败");
                 }
-                lockedStocks.add(preDeductParams);
+                if (lockResult.get("id") != null) {
+                    createdLockRecordIds.add(Long.valueOf(lockResult.get("id").toString()));
+                }
                 
                 OrderItem orderItem = new OrderItem();
                 orderItem.setOrderNo(orderNo);
@@ -107,11 +111,14 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
             return order;
             
         } catch (Exception e) {
-            for (Map<String, Object> lockedStock : lockedStocks) {
+            if (!createdLockRecordIds.isEmpty()) {
                 try {
-                    inventoryFeignClient.rollbackStock(lockedStock);
+                    Map<String, Object> releaseParams = new HashMap<>();
+                    releaseParams.put("releaseType", 3);
+                    releaseParams.put("remark", "订单创建失败，自动释放库存");
+                    inventoryFeignClient.releaseLockByOrderNo(orderNo, releaseParams);
                 } catch (Exception ex) {
-                    log.error("回滚库存失败: {}", lockedStock, ex);
+                    log.error("释放库存锁定失败: orderNo={}", orderNo, ex);
                 }
             }
             throw e;
@@ -163,18 +170,9 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         Integer previousStatus = order.getOrderStatus();
         validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.PAID.getCode());
         
-        List<OrderItem> orderItems = getOrderItems(order.getId());
-        
-        for (OrderItem item : orderItems) {
-            Map<String, Object> confirmParams = new HashMap<>();
-            confirmParams.put("productId", item.getProductId());
-            confirmParams.put("count", item.getBuyCount());
-            confirmParams.put("orderNo", orderNo);
-            
-            Boolean confirmResult = inventoryFeignClient.confirmDeductStock(confirmParams).getData();
-            if (!Boolean.TRUE.equals(confirmResult)) {
-                log.warn("确认扣减库存失败，继续处理: orderNo={}, productId={}", orderNo, item.getProductId());
-            }
+        Boolean confirmResult = inventoryFeignClient.confirmLockByOrderNo(orderNo).getData();
+        if (!Boolean.TRUE.equals(confirmResult)) {
+            log.warn("确认库存锁定失败，继续处理: orderNo={}", orderNo);
         }
         
         order.setOrderStatus(OrderStatusEnum.PAID.getCode());
@@ -265,14 +263,14 @@ public class OrderService extends ServiceImpl<OrderMapper, Order> {
         Integer previousStatus = order.getOrderStatus();
         validateStatusTransition(orderNo, previousStatus, OrderStatusEnum.CANCELLED.getCode());
         
-        if (OrderStatusEnum.PAID.getCode().equals(previousStatus)) {
-            List<OrderItem> orderItems = getOrderItems(order.getId());
-            for (OrderItem item : orderItems) {
-                Map<String, Object> rollbackParams = new HashMap<>();
-                rollbackParams.put("productId", item.getProductId());
-                rollbackParams.put("count", item.getBuyCount());
-                rollbackParams.put("orderNo", orderNo);
-                inventoryFeignClient.rollbackStock(rollbackParams);
+        if (OrderStatusEnum.PENDING_PAYMENT.getCode().equals(previousStatus)) {
+            try {
+                Map<String, Object> releaseParams = new HashMap<>();
+                releaseParams.put("releaseType", 3);
+                releaseParams.put("remark", remark != null ? remark : "订单取消，释放库存");
+                inventoryFeignClient.releaseLockByOrderNo(orderNo, releaseParams);
+            } catch (Exception e) {
+                log.error("释放库存锁定失败: orderNo={}", orderNo, e);
             }
         }
         
